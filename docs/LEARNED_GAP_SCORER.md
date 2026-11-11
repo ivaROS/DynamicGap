@@ -111,6 +111,13 @@ il_tools/il_eval_model --model full=/home/abdel/il_data/models/il_small_v1_full_
 il_tools/il_eval_model --report-only --out /home/abdel/il_data/evals/<name>   # metrics and videos again
 ```
 
+With `IL_DRIVE_REMOTE` (rclone remote `ildrive:`) and `IL_OPERATOR` set (the lab PC's `~/.bashrc`
+sets both), the whole `<out>` folder is uploaded at the end to the shared Drive folder
+`Research/ImitationLearning/ilData/<operator>/evals/<name>/` (`il_drive.py`), and then its videos are
+deleted locally, each once its Drive copy's MD5 matches; `<out>/on_drive.txt` records it.
+`--keep-videos` keeps them; `il_tools/il_upload_eval <out>` uploads a run later. Afterwards
+`--report-only` still recomputes the metrics but cannot re-cut the episode videos (no `screen.mp4`).
+
 Per model, one benchmark launch with `learned_gap_scorer:=true` and IL recording, on a
 virtual display of its own (Xvfb, software OpenGL; needs `sudo apt install xvfb`) that
 ffmpeg records, so nothing appears on the desktop. RViz's "Noetic end-of-life" dialog is

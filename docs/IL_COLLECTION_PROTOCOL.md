@@ -60,6 +60,13 @@ its first episode on (fix 51); the session's `episodes.csv` has each episode's
 timeout. A stage that changes the map, robot or task mode relaunches into a new
 session. To run only some stages, comment the others out in the suite file.
 
+**In the Docker container** (students; `docker/README.md`, Windows install guide): one
+workspace `/root/arena_ws`, no overlay; after C++ changes `cd ~/arena_ws && catkin build dynamic_gap`.
+`~/run_il_dataset.sh <operator> [session]` runs the designed-dataset suite with data root
+`/root/il_data`. The benchmark relaunch runs detached from the terminal; the script follows it, so
+Ctrl+C in its terminal stops the run, and once the bag is closed it copies the new sessions to the
+shared Drive folder (`il_upload_sessions`, below) if `IL_DRIVE_REMOTE` is set.
+
 If move_base_flex dies (`[rto/move_base_flex-5] process has died`, exit -11;
 a crash inside move_base_flex, not the planner), the robot keeps the last
 velocity command until the episode ends: stop the run, note it in
@@ -126,6 +133,12 @@ il_tools/il_check_session <sessions...> --yaml checks.yaml
 il_tools/il_build_dataset --out <dataset_dir> --lag <s> \
     --max-cursor-dist <m> --max-bearing-diff <rad> --min-tie-margin <m> <sessions...>
 ```
+
+Upload: `il_tools/il_upload_sessions [sessions...]` copies sessions (default: every one in
+`<data_root>/il_gap_selection` not uploaded yet) to the shared Google Drive folder
+`Research/ImitationLearning/ilData/<operator>/il_gap_selection/<session>/` (rclone remote
+`ildrive:`, `IL_DRIVE_REMOTE`); the local copy stays and `on_drive.txt` records the upload.
+Folders still recording or without a bag (the pre-relaunch folder) are skipped.
 
 Keep the session folders unchanged; the dataset can always be rebuilt from
 them with other thresholds. Do not pool sessions recorded before and after
