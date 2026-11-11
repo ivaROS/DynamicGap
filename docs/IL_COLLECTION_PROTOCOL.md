@@ -47,10 +47,11 @@ roslaunch arena_bringup start_trials.launch man_gap:=true \
     [man_gap_max_bearing_deg:=60 man_gap_switch_ratio:=0.7]
 ```
 
-**Designed dataset:** `~/run_il_dataset.sh [session]` (copy in
+**Designed dataset:** `~/run_il_dataset.sh <operator> [session]` (copy in
 `.claude/skills/monitor-il-run/run_il_dataset.sh.example`) runs the
-`il_dataset_small_v1.yaml` suite with data root `/home/abdel/il_data`, operator
-`ewan` and RViz under gdb. The pilot script `~/run_il_pilot.sh [session]`
+`il_dataset_small_v1.yaml` suite with data root `/home/abdel/il_data` and RViz under
+gdb. It behaves as the container's script: it follows the relaunch (Ctrl+C stops the
+whole run) and uploads new sessions to the Drive when `IL_DRIVE_REMOTE` is set. The pilot script `~/run_il_pilot.sh [session]`
 (optional `PED_VMAX=<m/s>`) does the same with the `50ped_daniel.yaml` suite
 (preliminary data). With a benchmark the first launch relaunches itself to load
 the suite's map and records into `<contest>_<date_time>_<first stage>`; the
