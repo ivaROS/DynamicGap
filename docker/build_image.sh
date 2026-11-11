@@ -1,12 +1,12 @@
 #!/bin/bash
 # Build the IL Docker image (maintainers only; students pull the finished image).
-# Usage: docker/build_image.sh [tag]        default tag: ghcr.io/ivaros/il-arena:latest
+# Usage: docker/build_image.sh [tag]        default tag: ghcr.io/udog-illinois/il-arena:latest
 # Env:   IL_DATA=/home/abdel/il_data       where datasets/ and models/ are copied from
 #        IL_SOURCE=https://github.com/<org>  clone the four IL repos' imitation_learning from this
 #                                          GitHub org (default ivaROS; origin is ivaROS either way)
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-tag="${1:-ghcr.io/ivaros/il-arena:latest}"
+tag="${1:-ghcr.io/udog-illinois/il-arena:latest}"
 data="${IL_DATA:-/home/abdel/il_data}"
 
 ctx="$(mktemp -d)"
