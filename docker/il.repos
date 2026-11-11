@@ -1,19 +1,7 @@
 # Workspace of the imitation-learning (manual gap selection) lab PC, for `vcs import src < il.repos`.
-# DynamicGap itself is cloned by the Dockerfile (ivaROS/DynamicGap, branch imitation_learning).
-# The four IL repos follow their branch; everything else is pinned to the commit the lab PC builds.
+# The four IL repos (DynamicGap, arena-rosnav, arena-evaluation, arena-simulation-setup, branch
+# imitation_learning) are cloned by the Dockerfile. Everything here is pinned to the commit the lab PC builds.
 repositories:
-  arena/arena-rosnav:
-    type: git
-    url: https://github.com/Udog-ILLINOIS/arena-rosnav.git
-    version: imitation_learning
-  arena/evaluation:
-    type: git
-    url: https://github.com/Udog-ILLINOIS/arena-evaluation.git
-    version: imitation_learning
-  arena/simulation-setup:
-    type: git
-    url: https://github.com/Udog-ILLINOIS/arena-simulation-setup.git
-    version: imitation_learning
   arena/utils/pedsim_ros:
     type: git
     url: https://github.com/ivaROS/pedsim_ros.git

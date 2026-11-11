@@ -12,7 +12,7 @@ mkdir -p -m 700 "$XDG_RUNTIME_DIR"
 if [ "${IL_SOFTWARE_GL:-0}" != 1 ] && ls /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.* >/dev/null 2>&1; then
     export __GLX_VENDOR_LIBRARY_NAME=nvidia
 else
-    export LIBGL_ALWAYS_SOFTWARE=1
+    export __GLX_VENDOR_LIBRARY_NAME=mesa LIBGL_ALWAYS_SOFTWARE=1
 fi
 export PATH="/root/arena_ws/src/planners/dynamic_gap/il_tools:$PATH"
 # Shared Google Drive folder (install guide Part 7): uploads go to ildrive:<operator>/...

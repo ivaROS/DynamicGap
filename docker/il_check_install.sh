@@ -26,9 +26,9 @@ check_repo() {  # path expected_remote expected_branch
     ok "$1  $br @ $(git -C "$d" rev-parse --short HEAD)  ($url)"
 }
 check_repo planners/dynamic_gap https://github.com/ivaROS/DynamicGap.git imitation_learning
-check_repo arena/arena-rosnav https://github.com/Udog-ILLINOIS/arena-rosnav.git imitation_learning
-check_repo arena/evaluation https://github.com/Udog-ILLINOIS/arena-evaluation.git imitation_learning
-check_repo arena/simulation-setup https://github.com/Udog-ILLINOIS/arena-simulation-setup.git imitation_learning
+check_repo arena/arena-rosnav https://github.com/ivaROS/arena-rosnav.git imitation_learning
+check_repo arena/evaluation https://github.com/ivaROS/arena-evaluation.git imitation_learning
+check_repo arena/simulation-setup https://github.com/ivaROS/arena-simulation-setup.git imitation_learning
 check_repo arena/utils/pedsim_ros https://github.com/ivaROS/pedsim_ros.git global_path_custom_ped
 
 echo "Build"

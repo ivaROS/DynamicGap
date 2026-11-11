@@ -30,12 +30,18 @@ WORKDIR /root/arena_ws
 COPY il.repos /tmp/il.repos
 RUN mkdir src && vcs import --retry 3 src < /tmp/il.repos
 
-# DynamicGap: origin is ivaROS/DynamicGap, branch imitation_learning. DG_URL can point the clone at
-# another copy of the branch (e.g. before it exists on ivaROS); origin is reset to ivaROS either way.
-ARG DG_URL=https://github.com/ivaROS/DynamicGap.git
-ARG DG_REF=imitation_learning
-RUN git clone --branch "${DG_REF}" "${DG_URL}" src/planners/dynamic_gap \
-    && git -C src/planners/dynamic_gap remote set-url origin https://github.com/ivaROS/DynamicGap.git
+# The four IL repos, branch imitation_learning. origin is always ivaROS (where students push);
+# IL_SOURCE can point the clone at a staging copy of the branches until they are on ivaROS.
+# IL_HEADS (the branches' commits, set by build_image.sh) makes this step re-run when one moves.
+ARG IL_SOURCE=https://github.com/ivaROS
+ARG IL_HEADS=unknown
+RUN echo "IL branches from ${IL_SOURCE}: ${IL_HEADS}" \
+    && for r in planners/dynamic_gap:DynamicGap arena/arena-rosnav:arena-rosnav \
+                arena/evaluation:arena-evaluation arena/simulation-setup:arena-simulation-setup; do \
+           dir=src/${r%%:*}; name=${r#*:}; \
+           git clone --branch imitation_learning "${IL_SOURCE}/${name}.git" "$dir" \
+           && git -C "$dir" remote set-url origin "https://github.com/ivaROS/${name}.git" || exit 1; \
+       done
 
 # Everything else the sources declare
 RUN apt-get update \
@@ -43,9 +49,11 @@ RUN apt-get update \
     && rosdep install --from-paths src --ignore-src -r -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Build: the provider packages first (undeclared dependencies), then the rest
+# Build: the provider packages first (undeclared dependencies), then the rest.
+# No build type, as on the lab PC: with Release (-O3) pedsim_simulator aborts ("free(): invalid
+# pointer") when the task generator spawns pedestrians.
 RUN source /opt/ros/noetic/setup.bash \
-    && catkin config --extend /opt/ros/noetic --cmake-args -DCMAKE_BUILD_TYPE=Release \
+    && catkin config --extend /opt/ros/noetic \
     && catkin build --no-status --summarize costmap_2d mbf_msgs mbf_costmap_core \
     && catkin build --no-status --summarize
 
