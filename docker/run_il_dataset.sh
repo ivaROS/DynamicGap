@@ -13,6 +13,8 @@
 # it. The local copy always stays.
 # One script for the container (defaults below) and the lab PC (~/run_il_dataset.sh there sets
 # IL_SETUP, IL_DATA_ROOT and IL_RVIZ_PREFIX and runs this file).
+# IL_LAUNCH_ARGS: extra start_trials.launch arguments, e.g. "ped_vmax:=0.8" or "il_goal_cursor:=true"
+# (an automatic operator that holds the cursor toward the goal: for testing, not for the dataset).
 case "${1:-}" in
     ""|.|..|*/*) echo "usage: $0 <operator> [session_name]  (operator: a plain name)" >&2; exit 1 ;;
 esac
@@ -35,6 +37,8 @@ trap stop_run INT  # a handler (unlike '') is not inherited: Ctrl+C still reache
 before=$(ls "$sessions" 2>/dev/null)  # session folders that are not this run's
 extra=()
 [ -n "${IL_RVIZ_PREFIX:-}" ] && extra+=(rviz_prefix:="$IL_RVIZ_PREFIX")
+read -ra more <<< "${IL_LAUNCH_ARGS:-}"
+extra+=("${more[@]}")
 roslaunch arena_bringup start_trials.launch \
     man_gap:=true \
     tm_modules:=benchmark \
