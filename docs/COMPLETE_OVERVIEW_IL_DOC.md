@@ -473,7 +473,16 @@ roslaunch arena_bringup start_trials.launch man_gap:=true \
 `/home/abdel/il_data`, operator `ewan`, RViz under gdb.
 
 **Pilot run** (`~/run_il_pilot.sh [session]`, optional `PED_VMAX=<m/s>`; its
-sessions are preliminary): the same with the `50ped_daniel.yaml` suite. The 50ped_daniel suite uses the
+sessions are preliminary): the same with the `50ped_daniel.yaml` suite.
+
+**In the Docker container** (students; `docker/README.md`, Windows install guide): one
+workspace `/root/arena_ws`, no overlay; after C++ changes `cd ~/arena_ws && catkin build dynamic_gap`.
+`~/run_il_dataset.sh <operator> [session]` runs the designed-dataset suite with data root
+`/root/il_data`. The benchmark relaunch runs detached from the terminal; the script follows it, so
+Ctrl+C in its terminal stops the run, and once the bag is closed it copies the new sessions to the
+shared Drive folder (`il_upload_sessions`: Drive `ilData/<operator>/il_gap_selection/<session>/`, local copy kept) if `IL_DRIVE_REMOTE` is set.
+
+ The 50ped_daniel suite uses the
 `gru_learn` map with a fixed start and goal per scenario, which avoids the
 spawn-in-collision problem of random starts on `map1_small` (II.12).
 
