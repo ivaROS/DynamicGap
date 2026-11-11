@@ -66,7 +66,8 @@ done
 new=()
 for name in $(comm -13 <(echo "$before") <(ls "$sessions" 2>/dev/null)); do
     d="$sessions/$name"
-    ls "$d"/*.bag >/dev/null 2>&1 && new+=("$d")  # no bag: the folder written before the relaunch
+    # the folder written before the benchmark relaunch: no bag, or a short one without an episode
+    ls "$d"/*.bag >/dev/null 2>&1 && [ "$(grep -c . "$d/episodes.csv" 2>/dev/null)" -gt 1 ] && new+=("$d")
 done
 if [ ${#new[@]} -eq 0 ]; then
     echo; echo "No session recorded."
