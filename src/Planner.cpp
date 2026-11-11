@@ -46,6 +46,68 @@ namespace dynamic_gap
         delete timeKeeper_;
     }
 
+    bool Planner::tryHandleTrajCreationPoint(int & trajFlag) {
+        if (hasTrajCreationPoint_)
+        {
+            geometry_msgs::PointStamped trajCreationPointRbtFrame;
+            tf2::doTransform(trajCreationPointOdomFrame_, trajCreationPointRbtFrame, odom2rbt_);
+
+            geometry_msgs::PoseStamped targetPoint;
+            targetPoint.header = trajCreationPointRbtFrame.header;
+            targetPoint.pose.position = trajCreationPointRbtFrame.point;
+            targetPoint.pose.orientation.w = 1;
+
+            Trajectory createdTraj = gapTrajGenerator_->generateTrajectoryToPointV2(rbtPoseInSensorFrame_, targetPoint);
+
+            ROS_INFO_STREAM_NAMED("Planner", "trajCreation: raw generated " << createdTraj.getPathRbtFrame().poses.size()
+                << " poses, target (rbt frame): (" << targetPoint.pose.position.x << ", " << targetPoint.pose.position.y << ")");
+
+            if (createdTraj.getPathRbtFrame().poses.empty())
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "trajCreation: empty path, aborting");
+                hasTrajCreationPoint_ = false;
+                return false;
+            }
+
+            createdTraj = gapTrajGenerator_->processTrajectory(createdTraj);
+            createdTraj.setPathOdomFrame(gapTrajGenerator_->transformPath(createdTraj.getPathRbtFrame(), rbt2odom_));
+
+            float dist = std::sqrt(std::pow(targetPoint.pose.position.x - rbtPoseInSensorFrame_.pose.position.x, 2) +
+                                    std::pow(targetPoint.pose.position.y - rbtPoseInSensorFrame_.pose.position.y, 2));
+            float estimatedCompletionTime = dist / cfg_.rbt.vx_absmax;
+
+            setCurrentTraj(createdTraj);
+            setCurrentTrajTrackingStartTime(ros::Time::now());
+            setCurrentTrajLifespan(ros::Duration(2.0 * estimatedCompletionTime));
+            createdTrajEstimatedTime_ = ros::Duration(estimatedCompletionTime);
+            trajVisualizer_->drawCurrentTrajectory(createdTraj);
+            trajFlag = GAP;
+
+            hasTrajCreationPoint_ = false;
+            isTrackingCreatedTraj_ = true;
+            return true;
+        }
+
+        if (isTrackingCreatedTraj_)
+        {
+            ros::Duration trackingTime = ros::Time::now() - currentTrajTrackingStartTime_;
+            float distToTarget = std::sqrt(std::pow(trajCreationPointOdomFrame_.point.x - rbtPoseInOdomFrame_.pose.position.x, 2) +
+                                           std::pow(trajCreationPointOdomFrame_.point.y - rbtPoseInOdomFrame_.pose.position.y, 2));
+            if (isCreatedTrajDone(distToTarget, trackingTime.toSec(), createdTrajEstimatedTime_.toSec(),
+                                  cfg_.goal.xy_global_goal_tolerance))
+            {
+                isTrackingCreatedTraj_ = false;
+            }
+            else
+            {
+                trajFlag = GAP;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool Planner::initialize(const std::string & name)
     {
         // ROS_INFO_STREAM("starting initialize");
@@ -57,7 +119,61 @@ namespace dynamic_gap
 
         // Config Setup
         cfg_.loadRosParamFromNodeHandle(name);
-        ros::param::get("/man_gap", manualSelectionMode_);
+
+        XmlRpc::XmlRpcValue manGapParam;
+        bool hasManGapParam = ros::param::get("/man_gap", manGapParam);
+        switch (parseManualModeParam(hasManGapParam, manGapParam, manualSelectionMode_))
+        {
+            case ManualModeParam::MISSING:
+                ROS_WARN_STREAM_NAMED("Planner", "/man_gap not set, manual gap selection off");
+                break;
+            case ManualModeParam::INVALID:
+                ROS_ERROR_STREAM_NAMED("Planner", "/man_gap is not true or false, manual gap selection off");
+                break;
+            default:
+                break;
+        }
+        ROS_INFO_STREAM_NAMED("Planner", "manual gap selection: " << (manualSelectionMode_ ? "on" : "off"));
+
+        // set by start_trials.launch, so they are saved in the session's params.yaml
+        double maxBearingDeg = ros::param::param("/man_gap_max_bearing_deg", 60.0);
+        if (maxBearingDeg <= 0.0 || maxBearingDeg > 180.0)
+        {
+            ROS_ERROR_STREAM_NAMED("Planner", "/man_gap_max_bearing_deg must be in (0, 180], using 60");
+            maxBearingDeg = 60.0;
+        }
+        manualMaxBearingDiff_ = maxBearingDeg * M_PI / 180.0;
+
+        manualSwitchRatio_ = ros::param::param("/man_gap_switch_ratio", 0.7);
+        if (manualSwitchRatio_ <= 0.0 || manualSwitchRatio_ > 1.0)
+        {
+            ROS_ERROR_STREAM_NAMED("Planner", "/man_gap_switch_ratio must be in (0, 1], using 0.7");
+            manualSwitchRatio_ = 0.7;
+        }
+        if (manualSelectionMode_)
+            ROS_INFO_STREAM_NAMED("Planner", "manual gap selection: gaps within " << maxBearingDeg
+                                  << " deg of the cursor, switch ratio " << manualSwitchRatio_);
+        // learned gap scorer: replaces DynamicGap's selection (and manual selection)
+        learnedSelectionMode_ = ros::param::param("/learned_gap_scorer", false);
+        if (learnedSelectionMode_)
+        {
+            const std::string scorerPath = ros::param::param("/learned_gap_scorer_path", std::string(""));
+            if (manualSelectionMode_)
+            {
+                ROS_WARN_STREAM_NAMED("Planner", "/learned_gap_scorer and /man_gap both set: the scorer selects, manual gap selection off");
+                manualSelectionMode_ = false;
+            }
+            if (scorerPath.empty())
+                learnedGapScorerError_ = "/learned_gap_scorer_path not set";
+            else if (learnedGapScorer_.load(scorerPath, learnedGapScorerError_))
+                learnedGapScorerError_.clear();
+            if (learnedGapScorer_.isLoaded())
+                ROS_INFO_STREAM_NAMED("Planner", "learned gap scorer: loaded " << scorerPath);
+            else
+                ROS_ERROR_STREAM_NAMED("Planner", "learned gap scorer: cannot load " << scorerPath << ": "
+                                       << learnedGapScorerError_ << ". The robot will hold still.");
+        }
+        ROS_INFO_STREAM_NAMED("Planner", "learned gap scorer: " << (learnedSelectionMode_ ? "on" : "off"));
         // ROS_INFO_STREAM("man_gap from param server: " << nh_.param<bool>("man_gap", false));
         // ROS_INFO_STREAM("manualSelectionMode_ set to: " << manualSelectionMode_);
 
@@ -123,13 +239,22 @@ namespace dynamic_gap
         // mpcInputPublisher_ = nh_.advertise<geometry_msgs::PoseArray>("mpc_input", 1);
         // mpcOutputSubscriber_ = nh_.subscribe("mpc_output", 1, &Planner::mpcOutputCB, this);
 
-        manualTrajSelectionSub_ = nh_.subscribe("/manual_traj_selection", 1,
+        // manual-mode topics are relative to the planner's namespace (e.g. /rto/...)
+        manualTrajSelectionSub_ = nh_.subscribe("manual_traj_selection", 1,
                                         &Planner::manualTrajSelectionCB, this);
 
-        rvizPublishPointSubsciber_ = nh_.subscribe("/gap_selection_point", 1, &Planner::rvizPublishPointSubsciberCB, this); //initlize the pubcriber for the publish point RVIz button on manuel trajectroy selction
+        cursorSub_ = nh_.subscribe("gap_selection_cursor", 1, &Planner::cursorCB, this);
+
+        trajCreationPointSub_ = nh_.subscribe("traj_creation_point", 1, &Planner::trajCreationPointCB, this);
+
+        scenarioResetSub_ = nh_.subscribe("/scenario_reset", 1, &Planner::scenarioResetCB, this);
+        scenarioResetBeginSub_ = nh_.subscribe("/scenario_reset_begin", 1, &Planner::scenarioResetBeginCB, this);
 
         manualCandidateMarkerPub_ = nh_.advertise<visualization_msgs::MarkerArray>(
-            "/manual_candidate_markers", 1);
+            "manual_candidate_markers", 1);
+
+        if (externalSelectionMode())
+            manualSamplePub_ = nh_.advertise<manual_gap_msgs::ManualGapSample>("manual_gap_sample", 10);
 
         map2rbt_.transform.rotation.w = 1;
         odom2rbt_.transform.rotation.w = 1;
@@ -223,10 +348,9 @@ namespace dynamic_gap
 
         gapDetector_->preprocessScan(scan);
 
-        scan_ = scan;
+        float minScanDist = *std::min_element(scan->ranges.begin(), scan->ranges.end());
 
-        float minScanDist = *std::min_element(scan_->ranges.begin(), scan_->ranges.end());
-
+        // scan_ is only replaced together with the gaps computed from it
         if (minScanDist < (cfg_.rbt.r_inscr + 0.0075))
         {
             ROS_INFO_STREAM_NAMED("Planner", "       in collision!");
@@ -237,6 +361,8 @@ namespace dynamic_gap
         {
             colliding_ = false;
         }
+
+        scan_ = scan;
 
         cfg_.updateParamFromScan(scan_);
 
@@ -319,6 +445,9 @@ namespace dynamic_gap
             geometry_msgs::PoseStamped globalPathLocalWaypointOdomFrame = globalPlanManager_->getGlobalPathLocalWaypointOdomFrame(rbt2odom_);
             goalVisualizer_->drawGlobalPathLocalWaypoint(globalPathLocalWaypointOdomFrame);
             goalVisualizer_->drawGlobalGoal(globalGoalOdomFrame_);
+            // manual mode: shows the operator where to head
+            if (manualSelectionMode_)
+                goalVisualizer_->drawGoalArrow(rbtPoseInOdomFrame_, globalGoalOdomFrame_);
             trajEvaluator_->transformGlobalPathLocalWaypointToRbtFrame(globalPathLocalWaypointOdomFrame, odom2rbt_);
             
         }
@@ -537,6 +666,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         if (!haveTFs_)
             return;
 
+        // rebuilt from every message, so agents that are gone disappear
+        std::map<std::string, geometry_msgs::Pose> currentTrueAgentPoses;
+        std::map<std::string, geometry_msgs::Vector3Stamped> currentTrueAgentVels;
+
         for (int i = 0; i < pedOdomMsg->agent_states.size(); i++)
         {
             pedsim_msgs::AgentState agentIState = pedOdomMsg->agent_states[i];
@@ -559,7 +692,7 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             // ROS_INFO_STREAM_NAMED("Planner", "      outgoing pose: (" << agentPoseRobotFrame.pose.position.x << ", " << agentPoseRobotFrame.pose.position.y << ")");
 
             // ROS_INFO_STREAM("updating " << agentNamespace << " odom from " << agent_odom_vects.at(agentID)[0] << ", " << agent_odom_vects.at(agentID)[1] << " to " << odom_vect[0] << ", " << odom_vect[1]);
-            currentTrueAgentPoses_[agentIState.id] = agentPoseRobotFrame.pose;
+            currentTrueAgentPoses[agentIState.id] = agentPoseRobotFrame.pose;
 
             // std::cout << "in agentOdomCB" << std::endl;
             // std::cout << "transforming from " << source_frame << " to " << cfg_.robot_frame_id << std::endl;
@@ -570,11 +703,66 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             tf2::doTransform(agentVelMsgFrame, agentVelRobotFrame, msgFrame2RobotFrame);
             // std::cout << "outcoming vector: " << agentVelRobotFrame.vector.x << ", " << agentVelRobotFrame.vector.y << std::endl;
 
-            currentTrueAgentVels_[agentIState.id] = agentVelRobotFrame;
+            currentTrueAgentVels[agentIState.id] = agentVelRobotFrame;
         
         }
 
-        agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses_, currentTrueAgentVels_, cfg_.robot_frame_id);
+        {
+            // read by the gap estimators in laserScanCB
+            boost::mutex::scoped_lock gapset(gapMutex_);
+            currentTrueAgentPoses_ = currentTrueAgentPoses;
+            currentTrueAgentVels_ = currentTrueAgentVels;
+        }
+
+        agentVisualizer_->drawPedestrianHistories(currentTrueAgentPoses, currentTrueAgentVels, cfg_.robot_frame_id);
+    }
+
+    void Planner::scenarioResetCB(const std_msgs::Int16::ConstPtr& msg)
+    {
+        ROS_INFO_STREAM_NAMED("Planner", "scenario reset, episode " << msg->data);
+
+        {
+            // pedestrians are removed and respawned at a reset
+            boost::mutex::scoped_lock gapset(gapMutex_);
+            currentTrueAgentPoses_.clear();
+            currentTrueAgentVels_.clear();
+
+            if (externalSelectionMode())
+            {
+                // the robot was teleported: gap points must not inherit the
+                // models (and velocity estimates) of the previous scene
+                for (Gap * prevRawGap : prevRawGaps_)
+                    delete prevRawGap;
+                prevRawGaps_.clear();
+                currRawGaps_.clear(); // same objects as prevRawGaps_
+
+                for (Gap * prevSimplifiedGap : prevSimplifiedGaps_)
+                    delete prevSimplifiedGap;
+                prevSimplifiedGaps_.clear();
+                currSimplifiedGaps_.clear();
+            }
+        }
+
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+        episodeId_ = msg->data;
+        lastResetWall_ = ros::WallTime::now();
+
+        if (externalSelectionMode())
+        {
+            // nothing chosen in the previous episode carries over; the
+            // trajectory state belongs to the planning thread, which applies
+            // this at its next tick (selectManualTrajectory)
+            hasTrajCreationPoint_ = false;
+            isTrackingCreatedTraj_ = false;
+            selectedManualCandidateId_ = -1;
+            manualResetPending_ = true;
+        }
+    }
+
+    void Planner::scenarioResetBeginCB(const std_msgs::Int16::ConstPtr& msg)
+    {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+        resetBeginId_ = msg->data;
     }
 
     bool Planner::setPlan(const std::vector<geometry_msgs::PoseStamped> & globalPlanMapFrame)
@@ -651,97 +839,124 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                                         << selectedManualCandidateId_);
     }
 
-    //callback function, updates 
-    void Planner::rvizPublishPointSubsciberCB(const geometry_msgs::PointStamped::ConstPtr& msg) {
+    void Planner::cursorCB(const manual_gap_msgs::CursorState::ConstPtr& msg)
+    {
         boost::mutex::scoped_lock lock(manualSelectionMutex_);
+
+        lastCursorMsg_ = *msg;
+        cursorRxWall_ = ros::WallTime::now();
+        hasCursorMsg_ = true;
+
+        if (!msg->tool_active)
+        {
+            // tool switched off: no cursor until it is active again
+            hasCursorPos_ = false;
+            return;
+        }
+
+        // RViz must run on sim time like the planner
+        if (std::abs((msg->header.stamp - ros::Time::now()).toSec()) > 2.0)
+            ROS_ERROR_STREAM_THROTTLE_NAMED(5.0, "Planner", "cursor stamp " << msg->header.stamp << " differs from planner time " << ros::Time::now() << ", is RViz on sim time?");
+
+        // a failed pick keeps the last point (a still mouse keeps its selection)
+        if (!msg->pick_ok || !haveTFs_)
+            return;
+
+        // stays false until a point is transformed; the last good point is kept
+        cursorTfOk_ = false;
+
+        geometry_msgs::PointStamped cursorPoint;
+        cursorPoint.header = msg->header;
+        cursorPoint.point = msg->point;
+
+        geometry_msgs::TransformStamped cursorFrame2Odom;
+        try
+        {
+            cursorFrame2Odom = tfBuffer_.lookupTransform(cfg_.odom_frame_id, msg->header.frame_id, msg->header.stamp);
+        } catch (const tf2::TransformException & stampEx)
+        {
+            try
+            {
+                cursorFrame2Odom = tfBuffer_.lookupTransform(cfg_.odom_frame_id, msg->header.frame_id, ros::Time(0));
+            } catch (const tf2::TransformException & latestEx)
+            {
+                ROS_WARN_STREAM_THROTTLE_NAMED(5.0, "Planner", "cannot transform cursor from " << msg->header.frame_id << ": " << latestEx.what());
+                return;
+            }
+        }
+
+        tf2::doTransform(cursorPoint, cursorPosOdomFrame_, cursorFrame2Odom);
+        hasCursorPos_ = true;
+        cursorTfOk_ = true;
+    }
+
+    bool Planner::isCursorUsable()
+    {
+        // caller holds manualSelectionMutex_
+        return hasCursorPos_ && hasCursorMsg_ && isCursorHeld(lastCursorMsg_.tool_active);
+    }
+
+    void Planner::trajCreationPointCB(const geometry_msgs::PointStamped::ConstPtr& msg) {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_); // or a separate mutex if this needs independent locking
+
+        // click-to-move is a manual-mode tool
+        if (!manualSelectionMode_)
+        {
+            hasTrajCreationPoint_ = false;
+            isTrackingCreatedTraj_ = false;
+            return;
+        }
 
         if (!haveTFs_)
             return;
 
-        tf2::doTransform(*msg, cursorPosOdomFrame_, map2odom_);
-        hasCursorPos_ = true;
+        tf2::doTransform(*msg, trajCreationPointOdomFrame_, map2odom_);
+        hasTrajCreationPoint_ = true;
     }
 
-    void Planner::publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
-                                            const std::vector<Trajectory>& ungapTrajs,
-                                            const std::vector<Trajectory>& idlingTrajs)
+    void Planner::publishManualCandidateMarkers(const int & selectedIdx)
     {
-        // ====== FLAGS (change only here) ======
-        bool disableUngapTrajs = true;   // true = hide/remove ungap candidates
-        bool disableIdlingTrajs = true;   // true = hide/remove idling candidates
-        // ======================================
-
+        // caller holds manualSelectionMutex_
         visualization_msgs::MarkerArray marker_array;
 
-        boost::mutex::scoped_lock lock(manualSelectionMutex_);
-        currentManualCandidates_.clear();
+        // clear last tick's numbers first, so no number outlives its candidate
+        visualization_msgs::Marker clear_marker;
+        clear_marker.header.frame_id = cfg_.odom_frame_id;
+        clear_marker.header.stamp = ros::Time::now();
+        clear_marker.ns = "manual_candidate_ids";
+        clear_marker.action = visualization_msgs::Marker::DELETEALL;
+        marker_array.markers.push_back(clear_marker);
 
-        int display_id = 0;
         int marker_id = 0;
 
-        auto add_marker_for_traj =
-            [&](const Trajectory& traj, int traj_flag, int local_idx)
+        for (size_t i = 0; i < currentManualCandidates_.size(); i++)
         {
-            if (traj.getPathOdomFrame().poses.empty())
-                return;
+            const ManualCandidate & c = currentManualCandidates_.at(i);
+            if (c.display_id < 0)
+                continue;
 
-            ManualCandidate c;
-            c.display_id = display_id;
-            c.traj_flag = traj_flag;
-            c.local_idx = local_idx;
-            c.path_odom_frame = traj.getPathOdomFrame();
-            currentManualCandidates_.push_back(c);
-
-            const geometry_msgs::Pose& terminal_pose =
-                traj.getPathOdomFrame().poses.back();
+            const geometry_msgs::Pose& terminal_pose = c.path_odom_frame.poses.back();
 
             visualization_msgs::Marker text_marker;
-            text_marker.header = traj.getPathOdomFrame().header;
+            text_marker.header = c.path_odom_frame.header;
             text_marker.ns = "manual_candidate_ids";
             text_marker.id = marker_id++;
             text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
             text_marker.action = visualization_msgs::Marker::ADD;
             text_marker.pose = terminal_pose;
             text_marker.pose.position.z += 0.35;
-            text_marker.scale.z = 2.0;
+            text_marker.scale.z = 0.5;
 
-            if (display_id == selectedManualCandidateId_)
-            {
-                text_marker.color.a = 1.0;
-                text_marker.color.r = 0.0;
-                text_marker.color.g = 1.0;
-                text_marker.color.b = 0.0;
-            }
-            else
-            {
-                text_marker.color.a = 1.0;
-                text_marker.color.r = 0.0;
-                text_marker.color.g = 0.0;
-                text_marker.color.b = 0.0;
-            }
+            // green: the candidate the robot follows this tick
+            bool selected = int(i) == selectedIdx;
+            text_marker.color.a = 1.0;
+            text_marker.color.r = selected ? 0.0 : 1.0;
+            text_marker.color.g = 1.0;
+            text_marker.color.b = selected ? 0.0 : 1.0;
 
-            text_marker.text = std::to_string(display_id);
+            text_marker.text = std::to_string(c.display_id);
 
             marker_array.markers.push_back(text_marker);
-            display_id++;
-        };
-
-        // GAP trajectories
-        for (size_t i = 0; i < gapTrajs.size(); i++)
-            add_marker_for_traj(gapTrajs.at(i), GAP, i);
-
-        // UNGAP trajectories
-        if (!disableUngapTrajs)
-        {
-            for (size_t i = 0; i < ungapTrajs.size(); i++)
-                add_marker_for_traj(ungapTrajs.at(i), UNGAP, i);
-        }
-
-        // IDLING trajectories
-        if (!disableIdlingTrajs)
-        {
-            for (size_t i = 0; i < idlingTrajs.size(); i++)
-                add_marker_for_traj(idlingTrajs.at(i), IDLING, i);
         }
 
         manualCandidateMarkerPub_.publish(marker_array);
@@ -781,50 +996,438 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return false;
     }
 
-    bool Planner::getCursorSelectedTrajectory(int& trajFlag,
-                                         int& lowestCostTrajIdx,
-                                         const std::vector<Trajectory>& gapTrajs,
-                                         const std::vector<Trajectory>& ungapTrajs,
-                                         const std::vector<Trajectory>& idlingTrajs)
+    namespace
+    {
+        // a gap trajectory is feasible if it has a path (infeasible ones are left empty)
+        bool isFeasibleTraj(const Trajectory & traj) { return !traj.getPathOdomFrame().poses.empty(); }
+
+        std::vector<bool> feasibleTrajs(const std::vector<Trajectory> & trajs)
+        {
+            std::vector<bool> feasible(trajs.size());
+            for (size_t i = 0; i < trajs.size(); i++)
+                feasible[i] = isFeasibleTraj(trajs.at(i));
+            return feasible;
+        }
+    }
+
+    int Planner::selectManualTrajectory(int & trajFlag,
+                                        const std::vector<GapTube *> & gapTubes,
+                                        const std::vector<Trajectory> & gapTrajs,
+                                        const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                        const std::vector<float> & gapTrajTerminalPoseCosts,
+                                        manual_gap_msgs::ManualGapSample & sample,
+                                        Trajectory & chosenTraj)
     {
         boost::mutex::scoped_lock lock(manualSelectionMutex_);
 
-        // if no cursor position available, keep current trajectory
-        if (!hasCursorPos_)
-            return false;
+        trajFlag = NONE;
+        chosenTraj = Trajectory();
 
-        float minDist = std::numeric_limits<float>::infinity();
-        Trajectory nearestTraj;
-        bool found = false;
+        applyPendingSelectionReset();
 
-        for (int i = 0; i < gapTrajs.size(); i++)
+        //////// one candidate list per tick: drawn, selected from and recorded ////////
+        currentManualCandidates_.clear();
+
+        std::vector<bool> feasible = feasibleTrajs(gapTrajs);
+
+        // every feasible candidate is shown
+        std::vector<int> displayIds = denseDisplayIds(feasible);
+
+        std::vector<std::pair<float, float>> terminals(gapTrajs.size(), std::make_pair(0.0f, 0.0f));
+
+        bool cursorUsable = isCursorUsable();
+        // the cursor that this selection uses, recorded under the same lock
+        fillSampleCursor(sample, cursorUsable);
+        const geometry_msgs::Point & rbtPos = rbtPoseInOdomFrame_.pose.position;
+        float cursorBearing = std::atan2(cursorPosOdomFrame_.point.y - rbtPos.y, cursorPosOdomFrame_.point.x - rbtPos.x);
+
+        for (size_t i = 0; i < gapTrajs.size(); i++)
         {
-            if (gapTrajs.at(i).getPathOdomFrame().poses.empty())
-                continue;
+            const geometry_msgs::PoseArray & path = gapTrajs.at(i).getPathOdomFrame();
+            manual_gap_msgs::ManualGapCandidate cMsg = buildCandidateMsg(i, gapTubes, gapTrajs, gapTrajPoseCosts,
+                                                                         gapTrajTerminalPoseCosts, displayIds.at(i));
 
-            geometry_msgs::Pose terminalPose = gapTrajs.at(i).getPathOdomFrame().poses.back();
+            ManualCandidate c;
+            c.display_id = cMsg.display_id;
+            c.traj_flag = GAP;
+            c.local_idx = i;
+            c.left_model_id = cMsg.left_model_id;
+            c.right_model_id = cMsg.right_model_id;
+            c.feasible = feasible.at(i);
+            c.path_odom_frame = path;
+            currentManualCandidates_.push_back(c);
 
-            float dx = terminalPose.position.x - cursorPosOdomFrame_.point.x;
-            float dy = terminalPose.position.y - cursorPosOdomFrame_.point.y;
-            float dist = sqrt(pow(dx, 2) + pow(dy, 2));
-
-            if (dist < minDist)
+            if (c.feasible)
             {
-                minDist = dist;
-                nearestTraj = gapTrajs.at(i);
-                found = true;
+                const geometry_msgs::Pose & terminalPose = path.poses.back();
+                terminals.at(i) = std::make_pair(float(terminalPose.position.x), float(terminalPose.position.y));
+
+                if (hasCursorPos_)
+                {
+                    cMsg.cursor_dist = std::hypot(terminalPose.position.x - cursorPosOdomFrame_.point.x,
+                                                  terminalPose.position.y - cursorPosOdomFrame_.point.y);
+                    float terminalBearing = std::atan2(terminalPose.position.y - rbtPos.y, terminalPose.position.x - rbtPos.x);
+                    cMsg.cursor_bearing_diff = normalize_theta(cursorBearing - terminalBearing);
+                }
+            }
+
+            sample.candidates.push_back(cMsg);
+        }
+
+        sample.source = sample.SOURCE_NONE;
+        sample.selected_idx = -1;
+        sample.selected_left_model_id = -1;
+        sample.selected_right_model_id = -1;
+
+        //////// click-to-move overrides the cursor ////////
+        if (tryHandleTrajCreationPoint(trajFlag))
+        {
+            sample.source = sample.SOURCE_CLICK_TO_MOVE;
+            sample.click_point_odom = trajCreationPointOdomFrame_.point;
+            clearFollowedGap();
+            chosenTraj = getCurrentTraj();
+            return -1;
+        }
+
+        //////// gap nearest the cursor ////////
+        if (!cursorUsable)
+            return -1;
+
+        // only gaps in the cursor's direction from the robot; none there: no selection
+        const float cursorX = cursorPosOdomFrame_.point.x;
+        const float cursorY = cursorPosOdomFrame_.point.y;
+        std::vector<bool> selectable = inCursorDirection(terminals, feasible, rbtPos.x, rbtPos.y,
+                                                         cursorX, cursorY, manualMaxBearingDiff_);
+
+        // the gap being followed, if it is still selectable
+        int currentIdx = -1;
+        if (hasModelIDs(selectedLeftModelID_, selectedRightModelID_))
+        {
+            for (size_t i = 0; i < currentManualCandidates_.size(); i++)
+            {
+                const ManualCandidate & c = currentManualCandidates_.at(i);
+                if (selectable.at(i) && c.left_model_id == selectedLeftModelID_ && c.right_model_id == selectedRightModelID_)
+                {
+                    currentIdx = i;
+                    break;
+                }
             }
         }
 
-        if (found)
+        // a different gap is taken only when clearly nearer the cursor
+        int selectedIdx = holdCurrentCandidate(terminals, cursorX, cursorY,
+                                               nearestCandidate(terminals, selectable, cursorX, cursorY),
+                                               currentIdx, manualSwitchRatio_);
+        if (selectedIdx < 0)
         {
-            setCurrentTraj(nearestTraj);
-            trajVisualizer_->drawCurrentTrajectory(nearestTraj);
-            trajFlag = GAP;
-            return true;
+            // nothing followed now: a gap selected later starts a new trajectory
+            clearFollowedGap();
+            return -1;
         }
 
-        return false;
+        const ManualCandidate & selected = currentManualCandidates_.at(selectedIdx);
+        followSelectedGap(selectedIdx, selected.left_model_id, selected.right_model_id, gapTubes, gapTrajs,
+                          trajFlag, chosenTraj);
+
+        sample.source = sample.SOURCE_GAP_CURSOR;
+        sample.selected_idx = selectedIdx;
+        sample.selected_left_model_id = selected.left_model_id;
+        sample.selected_right_model_id = selected.right_model_id;
+
+        return selectedIdx;
+    }
+
+    void Planner::applyPendingSelectionReset()
+    {
+        if (!manualResetPending_)
+            return;
+        // episode reset (scenarioResetCB): drop the previous episode's choice
+        clearFollowedGap();
+        setCurrentTraj(Trajectory());
+        setCurrentLeftGapPtModelID(nullptr);
+        setCurrentRightGapPtModelID(nullptr);
+        manualResetPending_ = false;
+    }
+
+    void Planner::clearFollowedGap()
+    {
+        selectedLeftModelID_ = -1;
+        selectedRightModelID_ = -1;
+    }
+
+    void Planner::followSelectedGap(const int & selectedIdx,
+                                    const int & leftModelID,
+                                    const int & rightModelID,
+                                    const std::vector<GapTube *> & gapTubes,
+                                    const std::vector<Trajectory> & gapTrajs,
+                                    int & trajFlag,
+                                    Trajectory & chosenTraj)
+    {
+        const Trajectory & selectedTraj = gapTrajs.at(selectedIdx);
+
+        // a new gap (by model ids) starts a new tracked trajectory, like the
+        // autonomous changeTrajectoryHelper; the same gap keeps its start time
+        // a gap without models (id -1) cannot be told from another one: always new
+        if (!hasModelIDs(leftModelID, rightModelID) ||
+            leftModelID != selectedLeftModelID_ || rightModelID != selectedRightModelID_)
+        {
+            Gap * gap = gapTubes.at(selectedIdx)->at(0);
+            setCurrentTrajTrackingStartTime(ros::Time::now());
+            const std::vector<float> timing = selectedTraj.getPathTiming();
+            setCurrentTrajLifespan(ros::Duration(timing.empty() ? 0.0 : timing.back() - timing.front()));
+            setCurrentLeftGapPtModelID(gap->getLeftGapPt()->getModel());
+            setCurrentRightGapPtModelID(gap->getRightGapPt()->getModel());
+            selectedLeftModelID_ = leftModelID;
+            selectedRightModelID_ = rightModelID;
+            trajectoryChangeCount_++;
+        }
+
+        // always the freshest trajectory through the selected gap
+        setCurrentTraj(selectedTraj);
+        trajVisualizer_->drawCurrentTrajectory(selectedTraj);
+        trajFlag = GAP;
+        chosenTraj = selectedTraj;
+    }
+
+    manual_gap_msgs::ManualGapCandidate Planner::buildCandidateMsg(const size_t & i,
+                                                                   const std::vector<GapTube *> & gapTubes,
+                                                                   const std::vector<Trajectory> & gapTrajs,
+                                                                   const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                                                   const std::vector<float> & gapTrajTerminalPoseCosts,
+                                                                   const int & displayId)
+    {
+        const geometry_msgs::PoseArray & path = gapTrajs.at(i).getPathOdomFrame();
+        Gap * gap = (i < gapTubes.size() && gapTubes.at(i)->size() > 0) ? gapTubes.at(i)->at(0) : nullptr;
+        Estimator * leftModel = gap ? gap->getLeftGapPt()->getModel() : nullptr;
+        Estimator * rightModel = gap ? gap->getRightGapPt()->getModel() : nullptr;
+
+        manual_gap_msgs::ManualGapCandidate cMsg;
+        cMsg.traj_idx = i;
+        cMsg.display_id = displayId;
+        cMsg.left_model_id = leftModel ? leftModel->getID() : -1;
+        cMsg.right_model_id = rightModel ? rightModel->getID() : -1;
+        cMsg.feasible = isFeasibleTraj(gapTrajs.at(i));
+        cMsg.shown = displayId >= 0;
+        cMsg.tube_len = (i < gapTubes.size()) ? gapTubes.at(i)->size() : 0;
+        cMsg.left_scan_idx = gap ? gap->getLeftGapPt()->getOrigIdx() : -1;
+        cMsg.right_scan_idx = gap ? gap->getRightGapPt()->getOrigIdx() : -1;
+
+        if (gap)
+        {
+            Eigen::Vector2f leftPt = gap->getLPosition();
+            Eigen::Vector2f rightPt = gap->getRPosition();
+            cMsg.left_range = leftPt.norm();
+            cMsg.left_theta = std::atan2(leftPt[1], leftPt[0]);
+            cMsg.right_range = rightPt.norm();
+            cMsg.right_theta = std::atan2(rightPt[1], rightPt[0]);
+            Eigen::Vector2f centre = 0.5 * (leftPt + rightPt);
+            cMsg.bearing = std::atan2(centre[1], centre[0]);
+
+            if (leftModel)
+            {
+                Eigen::Vector4f state = leftModel->getState();
+                cMsg.left_model_pos.x = state[0];
+                cMsg.left_model_pos.y = state[1];
+                cMsg.left_model_vel.x = state[2];
+                cMsg.left_model_vel.y = state[3];
+            }
+            if (rightModel)
+            {
+                Eigen::Vector4f state = rightModel->getState();
+                cMsg.right_model_pos.x = state[0];
+                cMsg.right_model_pos.y = state[1];
+                cMsg.right_model_vel.x = state[2];
+                cMsg.right_model_vel.y = state[3];
+            }
+
+            if (gap->getGoal())
+            {
+                geometry_msgs::PointStamped goalRbtFrame, goalOdomFrame;
+                goalRbtFrame.point.x = gap->getGoal()->getOrigGoalPosX();
+                goalRbtFrame.point.y = gap->getGoal()->getOrigGoalPosY();
+                tf2::doTransform(goalRbtFrame, goalOdomFrame, rbt2odom_);
+                cMsg.goal_pos = goalOdomFrame.point;
+            }
+        }
+
+        cMsg.cursor_dist = std::numeric_limits<float>::quiet_NaN();
+        cMsg.cursor_bearing_diff = std::numeric_limits<float>::quiet_NaN();
+        cMsg.model_score = std::numeric_limits<float>::quiet_NaN();
+
+        // DynamicGap's own cost of this candidate
+        cMsg.dg_cost = std::numeric_limits<float>::quiet_NaN();
+        cMsg.dg_terminal_cost = std::numeric_limits<float>::quiet_NaN();
+        cMsg.dg_clearance_cost = std::numeric_limits<float>::quiet_NaN();
+        if (i < gapTrajPoseCosts.size() && i < gapTrajTerminalPoseCosts.size())
+        {
+            cMsg.dg_terminal_cost = gapTrajTerminalPoseCosts.at(i);
+            cMsg.dg_clearance_cost = meanPoseCost(gapTrajPoseCosts.at(i));
+            cMsg.dg_cost = dgTrajCost(gapTrajPoseCosts.at(i), gapTrajTerminalPoseCosts.at(i),
+                                      gapTrajs.at(i).getPathRbtFrame().poses.size());
+        }
+
+        if (cMsg.feasible)
+        {
+            cMsg.terminal_pose = path.poses.back();
+            cMsg.path = downsamplePath(path, 5);
+        }
+        return cMsg;
+    }
+
+    int Planner::selectLearnedTrajectory(int & trajFlag,
+                                         const std::vector<GapTube *> & gapTubes,
+                                         const std::vector<Trajectory> & gapTrajs,
+                                         const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                         const std::vector<float> & gapTrajTerminalPoseCosts,
+                                         manual_gap_msgs::ManualGapSample & sample,
+                                         Trajectory & chosenTraj)
+    {
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+
+        trajFlag = NONE;
+        chosenTraj = Trajectory();
+
+        applyPendingSelectionReset();
+
+        // the model reads the sample, as recorded: robot state at this tick
+        fillSampleObservation(sample);
+
+        std::vector<bool> feasible = feasibleTrajs(gapTrajs);
+        std::vector<int> displayIds = denseDisplayIds(feasible);
+        for (size_t i = 0; i < gapTrajs.size(); i++)
+            sample.candidates.push_back(buildCandidateMsg(i, gapTubes, gapTrajs, gapTrajPoseCosts,
+                                                          gapTrajTerminalPoseCosts, displayIds.at(i)));
+
+        sample.selected_idx = -1;
+        sample.selected_left_model_id = -1;
+        sample.selected_right_model_id = -1;
+
+        if (!learnedGapScorer_.isLoaded())
+        {
+            ROS_ERROR_STREAM_THROTTLE_NAMED(1.0, "Planner", "learned gap scorer not loaded (" << learnedGapScorerError_
+                                            << "): holding still");
+            sample.source = sample.SOURCE_NONE;
+            clearFollowedGap();
+            return -1;
+        }
+        sample.source = sample.SOURCE_MODEL;
+
+        // the operator's options, infinite DynamicGap cost included: the operator
+        // chooses those gaps too, and the model is trained on that
+        Eigen::VectorXf scores;
+        int selectedIdx = learnedGapScorer_.choose(sample, {}, scores);
+        for (int i = 0; i < scores.size(); i++)
+            sample.candidates[i].model_score = sample.candidates[i].feasible && sample.candidates[i].shown
+                                               ? scores(i) : std::numeric_limits<float>::quiet_NaN();
+
+        if (selectedIdx < 0)
+        {
+            ROS_WARN_STREAM_THROTTLE_NAMED(1.0, "Planner", "learned gap scorer: no usable choice among "
+                                           << sample.candidates.size() << " candidates, holding still");
+            clearFollowedGap();
+            return -1;
+        }
+
+        const manual_gap_msgs::ManualGapCandidate & selected = sample.candidates.at(selectedIdx);
+        followSelectedGap(selectedIdx, selected.left_model_id, selected.right_model_id, gapTubes, gapTrajs,
+                          trajFlag, chosenTraj);
+
+        sample.selected_idx = selectedIdx;
+        sample.selected_left_model_id = selected.left_model_id;
+        sample.selected_right_model_id = selected.right_model_id;
+        return selectedIdx;
+    }
+
+    void Planner::fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample)
+    {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        sample.edges.clear();
+        for (Gap * gap : rawGaps)
+        {
+            // right point, then left point: the order attachUngapIDs pairs them in
+            for (GapPoint * pt : {gap->getRightGapPt(), gap->getLeftGapPt()})
+            {
+                manual_gap_msgs::ManualGapEdge e;
+                e.scan_idx = pt->getOrigIdx();
+                e.range = pt->getOrigRange();
+                e.theta = idx2theta(e.scan_idx);
+                Estimator * model = pt->getModel();
+                e.model_id = model ? model->getID() : -1;
+                e.model_pos.x = e.model_pos.y = e.model_vel.x = e.model_vel.y = nan;
+                if (model)
+                {
+                    Eigen::Vector4f state = model->getState();
+                    e.model_pos.x = state[0];
+                    e.model_pos.y = state[1];
+                    e.model_vel.x = state[2];
+                    e.model_vel.y = state[3];
+                }
+                sample.edges.push_back(e);
+            }
+        }
+        linkEdges(sample.edges);
+    }
+
+    void Planner::fillSampleObservation(manual_gap_msgs::ManualGapSample & sample)
+    {
+        sample.odom_stamp = rbtPoseInOdomFrame_.header.stamp;
+        sample.robot_pose_odom = rbtPoseInOdomFrame_.pose;
+        sample.robot_vel = currentRbtVel_.twist;
+        // goal at this tick's pose (globalGoalRobotFrame_ is only updated with a new plan)
+        geometry_msgs::PoseStamped goalRbtFrame;
+        tf2::doTransform(globalGoalOdomFrame_, goalRbtFrame, odom2rbt_);
+        sample.goal_robot_frame = goalRbtFrame.pose.position;
+        geometry_msgs::PoseStamped localWaypointRbtFrame;
+        tf2::doTransform(globalPathLocalWaypointOdomFrame_, localWaypointRbtFrame, odom2rbt_);
+        sample.local_waypoint_robot_frame = localWaypointRbtFrame.pose.position;
+        sampleObservationFilled_ = true;
+    }
+
+    void Planner::fillSampleCursor(manual_gap_msgs::ManualGapSample & sample, const bool & cursorUsable)
+    {
+        if (hasCursorMsg_)
+        {
+            sample.cursor = lastCursorMsg_;
+            sample.cursor_rx_wall = ros::Time(cursorRxWall_.sec, cursorRxWall_.nsec);
+        }
+        sample.cursor_odom = cursorPosOdomFrame_.point;
+        sample.cursor_valid = cursorUsable;
+        sample.cursor_live = cursorUsable && lastCursorMsg_.pick_ok && cursorTfOk_;
+    }
+
+    void Planner::publishManualSample(manual_gap_msgs::ManualGapSample & sample)
+    {
+        if (!manualSamplePub_)
+            return;
+
+        boost::mutex::scoped_lock lock(manualSelectionMutex_);
+
+        ros::WallTime wallNow = ros::WallTime::now();
+
+        sample.schema_version = sample.SCHEMA_VERSION;
+        sample.header.stamp = ros::Time::now();
+        sample.header.frame_id = cfg_.odom_frame_id;
+        sample.wall_stamp = ros::Time(wallNow.sec, wallNow.nsec);
+        sample.tick_seq = manualTickSeq_++;
+        sample.episode_id = episodeId_;
+        sample.in_reset_window = isInResetWindow(resetBeginId_, episodeId_,
+                                                 episodeId_ < 0 ? -1.0 : (wallNow - lastResetWall_).toSec(),
+                                                 resetWindow_);
+
+        sample.gap_snapshot_stamp = sample.scan.header.stamp;
+        // learned mode filled it when the model read the sample: keep what it saw
+        if (!sampleObservationFilled_)
+            fillSampleObservation(sample);
+        sampleObservationFilled_ = false;
+        sample.ungap_would_apply = false;
+        sample.idle_would_apply = false;
+
+        // ticks that ended before selection record the cursor now
+        if (sample.status != sample.STATUS_PLANNED)
+            fillSampleCursor(sample, isCursorUsable());
+        sample.hold_still = manualHoldStill_;
+
+        manualSamplePub_.publish(sample);
     }
 
     void Planner::updateEgoCircle()
@@ -1526,10 +2129,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
                 //     ROS_WARN_STREAM_NAMED("Planner", "gap traj " << i << " has < 2 poses");
                 // }
 
-                pathCosts.at(runningTrajIdx) = gapTrajTerminalPoseCosts.at(i) + std::accumulate(currentTrajPoseCosts.begin(), currentTrajPoseCosts.end(), float(0)) / currentTrajPoseCosts.size();
-                
-                pathCosts.at(runningTrajIdx) = currentTraj.getPathRbtFrame().poses.size() < 2 ? std::numeric_limits<float>::infinity() : 
-                                                                                                    pathCosts.at(runningTrajIdx);
+                // same cost manual mode records per candidate (dg_cost)
+                pathCosts.at(runningTrajIdx) = dgTrajCost(currentTrajPoseCosts, currentTrajTerminalPoseCost,
+                                                          currentTraj.getPathRbtFrame().poses.size());
                 
                 ROS_INFO_STREAM_NAMED("Planner", "    for gap tube " << i << " (length: " << gapTrajs.at(i).getPathRbtFrame().poses.size() << "), returning cost of " << pathCosts.at(runningTrajIdx));
             
@@ -1876,7 +2478,8 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         return copiedRawGaps;
     }
 
-    std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps()
+    std::vector<Gap *> Planner::deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy,
+                                                              std::vector<Gap *> * rawCopy)
     {
         boost::mutex::scoped_lock gapset(gapMutex_);
 
@@ -1885,6 +2488,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         for (Gap * currSimplifiedGap : currSimplifiedGaps_)
             planningGaps.push_back(new Gap(*currSimplifiedGap));
 
+        // the raw gaps of the same scan
+        if (rawCopy)
+            for (Gap * currRawGap : currRawGaps_)
+                rawCopy->push_back(new Gap(*currRawGap));
+
+        // under the same lock, so the scan is the one the gaps came from
+        if (scanCopy && scan_)
+            *scanCopy = *scan_;
+
         return planningGaps;
     }
 
@@ -1892,17 +2504,35 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
     {
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << timeKeeper_->getPlanningLoopCalls());
 
+        // manual mode: one imitation learning sample per tick, published on
+        // every return path below
+        manual_gap_msgs::ManualGapSample sample = newManualSample();
+        manualHoldStill_ = false;
+        sampleObservationFilled_ = false;
+        ScopeExit<std::function<void()>> publishSampleOnReturn([&]()
+        {
+            if (externalSelectionMode())
+                publishManualSample(sample);
+        });
+
         if (!initialized_ || !hasLaserScan_ || !hasGlobalGoal_)
         {
             ROS_WARN_STREAM_NAMED("Planner", "Not ready to plan, initialized: " << initialized_ << ", laser scan: " << hasLaserScan_ << ", global goal: " << hasGlobalGoal_);
             chosenTraj = Trajectory();
-            return;            
+            trajFlag = NONE;
+            sample.status = sample.STATUS_NOT_READY;
+            manualHoldStill_ = externalSelectionMode();
+            return;
         }
 
         if (colliding_)
         {
             ROS_ERROR_STREAM_NAMED("Planner", "In collision");
             chosenTraj = Trajectory();
+            trajFlag = NONE;
+            sample.status = sample.STATUS_COLLIDING;
+            // manual mode: no obstacle avoidance control, stand still
+            manualHoldStill_ = externalSelectionMode();
             return;
         }
 
@@ -1912,8 +2542,11 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
 
         isGoalReached();
 
-        std::vector<Gap *> copiedRawGaps = deepCopyCurrentRawGaps();
-        std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps();
+        std::vector<Gap *> copiedRawGaps;
+        std::vector<Gap *> planningGaps = deepCopyCurrentSimplifiedGaps(externalSelectionMode() ? &sample.scan : nullptr,
+                                                                        &copiedRawGaps);
+        if (externalSelectionMode())
+            fillSampleEdges(copiedRawGaps, sample);
         std::vector<Ungap *> ungaps, recedingUngaps;
 
         // Gap Tubes
@@ -1926,6 +2559,9 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             ROS_WARN_STREAM_NAMED("Planner", "No gaps to plan for");
             chosenTraj = Trajectory();
             trajFlag = NONE;
+            sample.status = sample.STATUS_NO_GAPS;
+            // manual mode: nothing to choose from, stand still
+            manualHoldStill_ = externalSelectionMode();
             return;
         }
 
@@ -2059,38 +2695,61 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         //////////////////////////////////////////////////////////////////////////////////////
         //                               GAP TRAJECTORY SELECTION                           //
         //////////////////////////////////////////////////////////////////////////////////////
-        if (manualSelectionMode_) // todo add manualSelectionMode_ to config 
-        {
-            publishManualCandidateMarkers(gapTrajs, ungapTrajs, idlingTrajs);
-        }
-
         timeKeeper_->startTimer(TRAJ_PICK);
         int lowestCostTrajIdx = -1;
         trajFlag = NONE;
 
-        bool haveManualSelection = false;
-
         if (manualSelectionMode_)
         {
-            haveManualSelection = getCursorSelectedTrajectory(trajFlag,
-                                                            lowestCostTrajIdx,
-                                                            gapTrajs,
-                                                            ungapTrajs,
-                                                            idlingTrajs);
+            // select first, then draw, so the highlight shows this tick's pick
+            int selectedIdx = selectManualTrajectory(trajFlag, gapTubes, gapTrajs,
+                                                     gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                                                     sample, chosenTraj);
+            {
+                boost::mutex::scoped_lock lock(manualSelectionMutex_);
+                publishManualCandidateMarkers(selectedIdx);
+            }
+        }
+        else if (learnedSelectionMode_)
+        {
+            // the learned scorer replaces DynamicGap's pick and trajectory
+            // comparison; without a usable choice the robot holds still
+            selectLearnedTrajectory(trajFlag, gapTubes, gapTrajs,
+                                    gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                                    sample, chosenTraj);
         }
         else
         {
             pickTraj(trajFlag, lowestCostTrajIdx,
-                        gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
-                        ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
-                        idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+                    gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                    ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+                    idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+        }
+
+        if (externalSelectionMode())
+        {
+            // DynamicGap's own pick, recorded only: local outputs and no
+            // comparison block, so the robot still follows the operator or scorer
+            int dgTrajFlag = NONE;
+            int dgTrajIdx = -1;
+            pickTraj(dgTrajFlag, dgTrajIdx,
+                    gapTrajs, gapTrajPoseCosts, gapTrajTerminalPoseCosts,
+                    ungapTrajs, ungapTrajPoseCosts, ungapTrajTerminalPoseCosts,
+                    idlingTrajs, idlingPathPoseCosts, idlingPathTerminalPoseCosts);
+            // candidates[] holds every gap trajectory in order, so the gap index is the position
+            sample.dg_pick_idx = (dgTrajFlag == GAP) ? dgTrajIdx : -1;
         }
 
         timeKeeper_->stopTimer(TRAJ_PICK);
 
-        if (manualSelectionMode_)
+        if (externalSelectionMode())
         {
-            chosenTraj = getCurrentTraj();
+            if (trajFlag == NONE)
+            {
+                // manual: no usable cursor or no feasible gap; learned: no usable
+                // score. Stand still rather than drive under obstacle avoidance
+                manualHoldStill_ = true;
+            }
             // cleanup
             for (Gap * planningGap : planningGaps) delete planningGap;
             for (Gap * copiedRawGap : copiedRawGaps) delete copiedRawGap;
@@ -2373,6 +3032,15 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
             if (!haveTFs_)
                 return cmdVel;
 
+            // manual / learned mode: only the operator's or the scorer's selection (a
+            // GAP trajectory) moves the robot; the planner's own control laws never run
+            if (externalSelectionMode() && (manualHoldStill_ || trajFlag != GAP || localTrajectory.poses.empty()))
+            {
+                ROS_INFO_STREAM_NAMED("Planner", "manual or learned mode, nothing selected: holding still.");
+                timeKeeper_->stopTimer(CONTROL);
+                return cmdVel;
+            }
+
             // Know Current Pose
             geometry_msgs::PoseStamped currPoseStRobotFrame;
             currPoseStRobotFrame.header.frame_id = cfg_.robot_frame_id;
@@ -2581,6 +3249,10 @@ void Planner::jointPoseAccCB(const nav_msgs::Odometry::ConstPtr & rbtOdomMsg,
         float cmdVelBufferSum = std::accumulate(cmdVelBuffer_.begin(), cmdVelBuffer_.end(), float(0));
         
         bool keepPlanning = cmdVelBufferSum > 1.0 || !cmdVelBuffer_.full();
+
+        // the operator (or the scorer, without a usable choice) may be holding the robot still on purpose
+        if (externalSelectionMode())
+            return true;
         
         if ((trajFlag == GAP || trajFlag == UNGAP) && !keepPlanning && !cfg_.ctrl.man_ctrl) 
         {

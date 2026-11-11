@@ -7,3 +7,8 @@
 .idea/
 doc/
 simulation_data/
+__pycache__/
+*.pyc
+
+# GRU velocity-model training data, checkpoints and plots (1.3 GB), kept out of git
+ml_gap_velocity/

@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""Export a trained gap scorer (model.pt of il_train) for the planner.
+
+Usage: il_export_scorer RUN_DIR [--out FILE] [--without-dg-costs]
+Writes RUN_DIR/gap_scorer.json (or FILE), the file /learned_gap_scorer_path points to.
+"""
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_train  # noqa: E402
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("run_dir")
+    parser.add_argument("--out", default=None)
+    parser.add_argument("--without-dg-costs", action="store_true",
+                        help="drop the linear term on DynamicGap's costs (for a model trained on data without them)")
+    args = parser.parse_args()
+    out = args.out or os.path.join(args.run_dir, "gap_scorer.json")
+    model = il_train.load(os.path.join(args.run_dir, "model.pt"))
+    if args.without_dg_costs:
+        try:
+            model = il_train.without_dg_costs(model)
+        except ValueError as e:
+            sys.exit("il_export_scorer: {}".format(e))
+    elif model.residual:
+        print("note: the model uses DynamicGap's costs; if it was trained on data without them "
+              "(schema < 2), export with --without-dg-costs")
+    il_train.export_scorer(model, out)
+    print("wrote {}".format(out))
+
+
+if __name__ == "__main__":
+    main()

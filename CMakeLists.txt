@@ -12,6 +12,7 @@ set(CATKIN_PACKAGE_DEPENDENCIES
   rospy
   pedsim_msgs
   dynamic_reconfigure
+  manual_gap_msgs
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -20,6 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+# reads the learned gap scorer's export (JSON)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(YAML_CPP REQUIRED IMPORTED_TARGET yaml-cpp)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -80,6 +84,7 @@ add_library(${PROJECT_NAME}
   src/visualization/GoalVisualizer.cpp
   src/visualization/AgentVisualizer.cpp
   src/visualization/TrajectoryVisualizer.cpp
+  src/learned_selection/LearnedGapScorer.cpp
   src/Planner.cpp
   src/DynamicGapPlanner.cpp
   src/TimeKeeper.cpp
@@ -88,4 +93,32 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
 	${catkin_LIBRARIES}
 	${PYTHON_LIBRARIES}
+	PkgConfig::YAML_CPP
 )
+
+# Generated dynamic_reconfigure headers must exist before the library compiles
+# (otherwise building only the test target fails on a clean build space).
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+# manual_gap_msgs headers
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+#############
+## Testing ##
+#############
+
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(${PROJECT_NAME}_test
+    test/test_main.cpp
+    test/test_trajflag_uninitialised.cpp
+    test/test_planner_manual_mode.cpp
+    test/test_manual_selection.cpp
+    test/test_learned_gap_scorer.cpp
+  )
+  if(TARGET ${PROJECT_NAME}_test)
+    target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME} ${catkin_LIBRARIES})
+    # Use RPATH (not RUNPATH) so the freshly built libdynamic_gap.so is loaded even when
+    # LD_LIBRARY_PATH lists an underlay workspace that has its own (older) copy.
+    set_target_properties(${PROJECT_NAME}_test PROPERTIES LINK_FLAGS "-Wl,--disable-new-dtags")
+    # fixtures written by il_tools/il_scorer_fixtures
+    target_compile_definitions(${PROJECT_NAME}_test PRIVATE SCORER_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures")
+  endif()
+endif()

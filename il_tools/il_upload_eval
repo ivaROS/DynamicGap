@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Upload finished eval runs to the shared Google Drive folder, then delete their local videos.
+
+Usage: il_upload_eval DIR [DIR ...] [--remote REMOTE] [--operator NAME] [--keep-videos] [--dry-run]
+  DIR      an eval run folder (il_eval_model --out DIR, or one model's folder in it)
+  REMOTE   rclone destination, default $IL_DRIVE_REMOTE (ildrive: = the ilData folder)
+  NAME     whose runs these are, default $IL_OPERATOR
+~/il_data/evals/E/... lands in REMOTE/NAME/evals/E/... with everything in it (session bags, metrics,
+logs, videos), so a run stays together. Afterwards only the videos are deleted locally, each once its
+Drive copy's checksum matches; DIR/on_drive.txt records it. il_eval_model runs this at its end when
+IL_DRIVE_REMOTE is set. Give finished eval folders only.
+"""
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_drive  # noqa: E402
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("dirs", nargs="+")
+    parser.add_argument("--remote", default=os.environ.get("IL_DRIVE_REMOTE"))
+    parser.add_argument("--operator", default=os.environ.get("IL_OPERATOR"))
+    parser.add_argument("--keep-videos", action="store_true", help="upload, but keep the local videos")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+    if not args.remote:
+        parser.error("no remote: pass --remote ildrive: or set IL_DRIVE_REMOTE")
+    if not args.operator:
+        parser.error("no operator: pass --operator NAME or set IL_OPERATOR")
+    failed = False
+    for d in args.dirs:
+        if not os.path.isdir(d):
+            sys.exit("not a directory: {}".format(d))
+        failed |= il_drive.upload_eval(d, args.remote, args.operator, args.keep_videos, args.dry_run) < 0
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

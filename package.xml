@@ -18,6 +18,12 @@
   <depend>nav_core</depend>
   <depend>pedsim_msgs</depend>
   <depend>dynamic_reconfigure</depend>
+  <depend>manual_gap_msgs</depend>
+  <!-- the learned gap scorer's export, found with pkg-config -->
+  <depend>yaml-cpp</depend>
+  <build_depend>pkg-config</build_depend>
+
+  <test_depend>rosunit</test_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

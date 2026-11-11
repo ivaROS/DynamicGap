@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Automatic operator for manual gap selection: holds the cursor toward the goal.
+
+Publishes gap_selection_cursor (manual_gap_msgs/CursorState) the way the RViz
+ContinuousGapSelectionTool does, at 10 Hz wall clock, so the planner in manual
+mode (man_gap:=true) selects gaps exactly as for a person and the recorded
+ticks are SOURCE_GAP_CURSOR labels. The cursor is put `lookahead` metres from
+the robot toward the target, like a person hovering the mouse a little ahead
+in the direction to go; the planner's own rule (direction cone, nearest
+trajectory end, sticky switch) then picks the gap. When no gap ends within the
+planner's direction cone (/man_gap_max_bearing_deg) of the target, e.g. an
+obstacle right in front of the goal, the planner would select nothing and the
+robot would wait forever; the cursor is then put on the end of the trajectory
+whose direction is closest to the target's, as a person would point at the
+best gap left.
+
+Target (~target):
+  goal      the goal, always
+  waypoint  the local waypoint of the global plan
+  auto      the goal when the straight line to it is free in the static map,
+            else the local waypoint (around walls) [default]
+
+Robot pose, goal and waypoint come from the planner's manual_gap_sample (one
+tick old). Before the first sample nothing is published, so the robot holds
+still.
+
+Usage (normally via start_trials.launch il_goal_cursor:=true):
+  rosrun dynamic_gap il_goal_cursor __ns:=/rto [_lookahead:=3.0] [_target:=auto]
+"""
+
+import math
+import threading
+import time
+
+import numpy as np
+
+
+def yaw_of(q):
+    return math.atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+
+
+def robot_to_odom(px, py, yaw, x, y):
+    """A robot-frame point in the odom frame, robot at (px, py, yaw)."""
+    c, s = math.cos(yaw), math.sin(yaw)
+    return px + c * x - s * y, py + s * x + c * y
+
+
+def cursor_point(px, py, tx, ty, lookahead):
+    """The point lookahead metres from (px, py) toward (tx, ty), or the target when nearer."""
+    d = math.hypot(tx - px, ty - py)
+    if d <= lookahead or d < 1e-6:
+        return tx, ty
+    return px + (tx - px) * lookahead / d, py + (ty - py) * lookahead / d
+
+
+def angle_diff(a, b):
+    return abs(math.atan2(math.sin(a - b), math.cos(a - b)))
+
+
+def closest_gap_end(px, py, tx, ty, ends):
+    """Of the trajectory ends [(x, y)], the one whose direction from (px, py) is
+    closest to the target's, and that angle; (None, inf) if there are none."""
+    target = math.atan2(ty - py, tx - px)
+    best, best_diff = None, math.inf
+    for x, y in ends:
+        if math.hypot(x - px, y - py) < 1e-3:
+            continue
+        d = angle_diff(math.atan2(y - py, x - px), target)
+        if d < best_diff:
+            best, best_diff = (x, y), d
+    return best, best_diff
+
+
+def line_free(grid, x0, y0, x1, y1, half_width):
+    """Whether the segment (map frame) and two copies offset by half_width are free.
+    grid: dict with data (2D int array, -1 unknown, >50 occupied), resolution, origin_x/y."""
+    res = grid["resolution"]
+    length = math.hypot(x1 - x0, y1 - y0)
+    if length < 1e-6:
+        return True
+    nx, ny = -(y1 - y0) / length, (x1 - x0) / length
+    n = int(length / (res * 0.5)) + 1
+    data = grid["data"]
+    for off in (0.0, half_width, -half_width):
+        for k in range(n + 1):
+            f = k / n
+            x = x0 + f * (x1 - x0) + off * nx
+            y = y0 + f * (y1 - y0) + off * ny
+            i = int((x - grid["origin_x"]) / res)
+            j = int((y - grid["origin_y"]) / res)
+            if not (0 <= j < data.shape[0] and 0 <= i < data.shape[1]) or data[j, i] > 50:
+                return False
+    return True
+
+
+class GoalCursor:
+    def __init__(self):
+        import rospy
+        import tf2_ros
+        from manual_gap_msgs.msg import CursorState, ManualGapSample
+        from nav_msgs.msg import OccupancyGrid
+
+        self.rospy, self.CursorState = rospy, CursorState
+        self.lookahead = rospy.get_param("~lookahead", 3.0)
+        self.target = rospy.get_param("~target", "auto")
+        self.half_width = rospy.get_param("~line_half_width", 0.3)
+        self.map_frame = rospy.get_param("~map_frame", "map")
+        # the planner's direction cone (Planner: man_gap_max_bearing_deg)
+        self.cone = math.radians(rospy.get_param("/man_gap_max_bearing_deg", 60.0))
+        if self.target not in ("auto", "goal", "waypoint"):
+            raise ValueError("~target must be auto, goal or waypoint, not " + str(self.target))
+        self.lock = threading.Lock()
+        self.sample, self.grid = None, None
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.pub = rospy.Publisher("gap_selection_cursor", CursorState, queue_size=1)
+        rospy.Subscriber("manual_gap_sample", ManualGapSample, self.sample_cb, queue_size=1)
+        rospy.Subscriber("/map", OccupancyGrid, self.map_cb, queue_size=1)
+        self.last_target = None
+        rospy.loginfo("il_goal_cursor: lookahead %.1f m, target %s", self.lookahead, self.target)
+
+    def sample_cb(self, msg):
+        with self.lock:
+            self.sample = msg
+
+    def map_cb(self, msg):
+        grid = {"data": np.array(msg.data, dtype=np.int16).reshape(msg.info.height, msg.info.width),
+                "resolution": msg.info.resolution,
+                "origin_x": msg.info.origin.position.x, "origin_y": msg.info.origin.position.y}
+        with self.lock:
+            self.grid = grid
+
+    def odom_to_map(self, odom_frame):
+        """(dx, dy, dyaw) taking odom points to the map frame, None if unknown."""
+        try:
+            t = self.tf_buffer.lookup_transform(self.map_frame, odom_frame, self.rospy.Time(0))
+        except Exception:
+            return None
+        return t.transform.translation.x, t.transform.translation.y, yaw_of(t.transform.rotation)
+
+    def cursor(self):
+        """(frame_id, x, y) of the cursor, None before the first planned sample."""
+        with self.lock:
+            s, grid = self.sample, self.grid
+        if s is None or s.status != 0:  # STATUS_PLANNED: goal and waypoint are set
+            return None
+        p = s.robot_pose_odom.position
+        yaw = yaw_of(s.robot_pose_odom.orientation)
+        goal = robot_to_odom(p.x, p.y, yaw, s.goal_robot_frame.x, s.goal_robot_frame.y)
+        wp = robot_to_odom(p.x, p.y, yaw, s.local_waypoint_robot_frame.x, s.local_waypoint_robot_frame.y)
+        frame = s.header.frame_id
+        tf = self.odom_to_map(frame)
+        target, name = goal, "goal"
+        if self.target == "waypoint":
+            target, name = wp, "waypoint"
+        elif self.target == "auto" and grid is not None and tf is not None:
+            to_map = lambda x, y: robot_to_odom(tf[0], tf[1], tf[2], x, y)  # noqa: E731
+            if not line_free(grid, *to_map(p.x, p.y), *to_map(*goal), self.half_width):
+                target, name = wp, "waypoint"
+        ends = [(c.terminal_pose.position.x, c.terminal_pose.position.y) for c in s.candidates if c.feasible]
+        end, diff = closest_gap_end(p.x, p.y, target[0], target[1], ends)
+        if end is not None and diff > self.cone:
+            # nothing in the planner's cone: point at the best gap left
+            x, y = end
+            name += " (closest gap)"
+        else:
+            x, y = cursor_point(p.x, p.y, target[0], target[1], self.lookahead)
+        if name != self.last_target:
+            self.rospy.loginfo("il_goal_cursor: heading for the %s", name)
+            self.last_target = name
+        if tf is not None:
+            # recorded like the RViz tool's cursor, in the map frame
+            x, y = robot_to_odom(tf[0], tf[1], tf[2], x, y)
+            frame = self.map_frame
+        return frame, x, y
+
+    def spin(self):
+        rospy = self.rospy
+        while not rospy.is_shutdown():
+            c = self.cursor()
+            if c is not None:
+                now = time.time()
+                msg = self.CursorState()
+                msg.header.stamp = rospy.Time.now()
+                msg.header.frame_id = c[0]
+                msg.wall_stamp = rospy.Time.from_sec(now)
+                msg.tool_active = True
+                msg.pick_ok = True
+                msg.point.x, msg.point.y = c[1], c[2]
+                msg.screen_x = msg.screen_y = -1
+                # the cursor moves with the robot: every publish is a move
+                msg.last_move_wall = msg.wall_stamp
+                self.pub.publish(msg)
+            time.sleep(0.1)
+
+
+def main():
+    import rospy
+    rospy.init_node("il_goal_cursor")
+    GoalCursor().spin()
+
+
+if __name__ == "__main__":
+    main()

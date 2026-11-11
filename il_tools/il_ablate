@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Ablations of the gap scorer: each variant trained with several seeds, scored
+on the validation split, summarised as mean and std over the seeds.
+
+Variants: the full model, without attention, and the full model with one input
+group left out (or, for groups off by default, added). The linear model too
+when the dataset has DynamicGap's costs.
+
+Usage: il_ablate --data DATASET_DIR --out DIR [--seeds 5] [--only full,no_attention,...]
+Writes DIR/runs.csv (one row per run) and DIR/summary.csv; each run's model in DIR/<variant>/seed<k>.
+"""
+
+import argparse
+import csv
+import io
+import os
+import sys
+
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_model  # noqa: E402
+import il_train  # noqa: E402
+
+METRICS = ["top1", "top1_at_switches", "nll", "model_switch_rate", "model_blip_rate"]
+
+
+def variants(dg_costs):
+    base = list(il_model.DEFAULT_GROUPS)
+    v = {"full": {}, "no_attention": {"attention": False}, "no_scene": {"scene": False}}
+    if dg_costs:
+        v["linear"] = {"network": False, "residual": True}
+        v["with_dg_costs"] = {"residual": True}
+    for g in il_model.INPUT_GROUPS:
+        if g in base:
+            v["without_" + g] = {"groups": [x for x in base if x != g]}
+        else:
+            v["with_" + g] = {"groups": base + [g]}
+    return v
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--data", required=True)
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--seeds", type=int, default=5)
+    parser.add_argument("--only", default="", help="comma-separated variant names")
+    parser.add_argument("--epochs", type=int, default=il_train.DEFAULTS["epochs"])
+    parser.add_argument("--verbose", action="store_true", help="print every epoch of every run")
+    args = parser.parse_args()
+    if os.path.exists(args.out) and os.listdir(args.out):
+        sys.exit("output folder {} is not empty".format(args.out))
+
+    data = [il_train.load_split(args.data, s) for s in ("train", "val", "test")]
+    items = il_train.featurize_splits(*data)
+    all_variants = variants(il_train.has_dg_costs(items["train"]))
+    names = [n for n in args.only.split(",") if n] or list(all_variants)
+    unknown = set(names) - set(all_variants)
+    if unknown:
+        parser.error("unknown variants: {} (have: {})".format(", ".join(sorted(unknown)), ", ".join(all_variants)))
+
+    os.makedirs(args.out, exist_ok=True)
+    rows = []
+    print("{} variants x {} seeds; validation: {} examples".format(len(names), args.seeds, len(data[1])), flush=True)
+    for name in names:
+        for seed in range(args.seeds):
+            cfg = dict(all_variants[name], seed=seed, epochs=args.epochs)
+            log = sys.stdout if args.verbose else io.StringIO()
+            _, result = il_train.train(args.data, cfg, os.path.join(args.out, name, "seed{}".format(seed)),
+                                       log=log, log_every=10, data=data, items=items)
+            v = result["val"]
+            rows.append(dict({"variant": name, "seed": seed, "best_epoch": result["best_epoch"]},
+                             **{m: v.get(m) for m in METRICS}))
+            print("{:22s} seed {}  epoch {:3d}  {}".format(name, seed, result["best_epoch"], il_train.fmt(v, METRICS)),
+                  flush=True)
+        summarize(rows, args.out, v)
+
+
+def summarize(rows, out, last_val):
+    with open(os.path.join(out, "runs.csv"), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    names = list(dict.fromkeys(r["variant"] for r in rows))
+    summary = []
+    for n in names:
+        rs = [r for r in rows if r["variant"] == n]
+        s = {"variant": n, "seeds": len(rs)}
+        for m in METRICS:
+            x = [r[m] for r in rs if r[m] is not None]
+            s[m + "_mean"], s[m + "_std"] = (float(np.mean(x)), float(np.std(x))) if x else (None, None)
+        summary.append(s)
+    with open(os.path.join(out, "summary.csv"), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(summary[0]))
+        w.writeheader()
+        w.writerows(summary)
+
+    print("\n{:22s} {:>5s}  {:>13s}  {:>13s}  {:>13s}  {:>13s}".format(
+        "variant", "seeds", "val top1", "top1@switch", "val nll", "switch rate"))
+    for s in summary:
+        print("{:22s} {:5d}  {}  {}  {}  {}".format(s["variant"], s["seeds"], *[
+            "  -          " if s[m + "_mean"] is None else "{:.3f} ± {:.3f}".format(s[m + "_mean"], s[m + "_std"])
+            for m in ("top1", "top1_at_switches", "nll", "model_switch_rate")]))
+    print("operator {}, chance top1 {:.3f}\n".format(il_train.fmt(last_val, ("operator_switch_rate",)),
+                                                    last_val["chance"]), flush=True)
+
+
+if __name__ == "__main__":
+    main()

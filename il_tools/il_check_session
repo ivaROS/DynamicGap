@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Automatic checks of recorded IL sessions (docs/IL_DATA_COLLECTION_PLAN.md, 1.6).
+
+Usage: il_check_session SESSION_DIR [SESSION_DIR ...] [--namespace rto] [--yaml OUT]
+Exit code 1 if any check fails.
+"""
+
+import argparse
+import os
+import sys
+
+import yaml
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_bags  # noqa: E402
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("sessions", nargs="+")
+    parser.add_argument("--namespace", default=None, help="robot namespace (default: found in the bags)")
+    parser.add_argument("--yaml", default=None, help="write the results to this file")
+    args = parser.parse_args()
+
+    results, ok = {}, True
+    for session in args.sessions:
+        samples = il_bags.load_samples(session, args.namespace)
+        checks, report = il_bags.check_session(session, args.namespace, samples)
+        outcomes = il_bags.episode_outcomes(samples, il_bags.load_params(session), il_bags.load_episode_events(session))
+        print("== " + session)
+        for name, passed, detail in checks:
+            ok &= passed
+            print("  {} {}{}".format("PASS" if passed else "FAIL", name, "  ({})".format(detail) if detail else ""))
+        for key, value in report.items():
+            print("  {}: {}".format(key, value))
+        results[session] = {"checks": [{"name": n, "ok": p, "detail": d} for n, p, d in checks],
+                            "report": report, "episodes": outcomes}
+
+    if args.yaml:
+        with open(args.yaml, "w") as f:
+            yaml.safe_dump(results, f, default_flow_style=False, sort_keys=False)
+    sys.exit(0 if ok else 1)
+
+
+if __name__ == "__main__":
+    main()

@@ -35,6 +35,14 @@ namespace dynamic_gap
             */
             void drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame);
 
+            /**
+            * \brief Visualize a faint line from the robot to the global goal (manual mode)
+            * \param rbtPoseOdomFrame robot pose in odom frame
+            * \param globalGoalOdomFrame global goal in odom frame
+            */
+            void drawGoalArrow(const geometry_msgs::PoseStamped & rbtPoseOdomFrame,
+                               const geometry_msgs::PoseStamped & globalGoalOdomFrame);
+
         private: 
             // void drawGapTubeGoals(visualization_msgs::MarkerArray & gapGoalsMarkerArray, GapTube * gapTube);
 
@@ -46,11 +54,13 @@ namespace dynamic_gap
             std_msgs::ColorRGBA terminalGapGoalsColor; /**< Color to visualize terminal gap goals with */
             std_msgs::ColorRGBA globalPathLocalWaypointColor; /**< Color to visualize global path local waypoint with */
             std_msgs::ColorRGBA globalGoalColor; /**< Color to visualize global goal with */
+            std_msgs::ColorRGBA goalArrowColor; /**< Color to visualize the robot-to-goal line with */
 
             ros::Publisher globalPathLocalWaypointPublisher; /**< Publisher for global path local waypoint */
             ros::Publisher gapGoalPositionsPublisher; /**< Publisher for gap goal positions */
             ros::Publisher gapGoalVelocitiesPublisher; /**< Publisher for gap goal velocities */
             ros::Publisher globalGoalPublisher; /**< Publisher for global goal */
+            ros::Publisher goalArrowPublisher; /**< Publisher for the robot-to-goal line */
             
     };
 }

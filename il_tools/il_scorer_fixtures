@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Fixtures for the planner's C++ gap scorer test (test/test_learned_gap_scorer.cpp):
+exported models and samples with the inputs and scores il_model computes for
+them. The C++ scorer must compute the same from the same samples.
+
+Usage: il_scorer_fixtures [--out DIR]          small random models (the test's fixtures)
+       il_scorer_fixtures --model gap_scorer.json --name NAME --out DIR
+                                                one more fixture with an exported model
+Writes DIR/NAME_model.json and DIR/NAME_cases.json per model.
+"""
+
+import argparse
+import copy
+import json
+import math
+import os
+import random
+import sys
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_dataset  # noqa: E402
+import il_model  # noqa: E402
+import il_train  # noqa: E402
+
+FIXTURE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "test", "fixtures")
+
+
+def f32(x):
+    """A float32 message field, as the recorder stores it."""
+    return float(np.float32(x))
+
+
+def json_float(x):
+    # yaml-cpp, which reads the fixtures, reads these as non-finite floats
+    if math.isnan(x):
+        return ".nan"
+    if math.isinf(x):
+        return ".inf" if x > 0 else "-.inf"
+    return x
+
+
+def random_edges(rng, gaps):
+    """Scene edges of `gaps` raw gaps in scan order, linked as Planner::fillSampleEdges does."""
+    idx = sorted(rng.sample(range(512), 2 * gaps))
+    edges = []
+    for k, i in enumerate(idx):
+        theta = (i - 256) * 2 * math.pi / 511
+        vel = [f32(rng.uniform(-1, 1)), f32(rng.uniform(-1, 1))]
+        if rng.random() < 0.1:  # a gap point without a model
+            vel = [math.nan, math.nan]
+        edges.append({"scan_idx": i, "model_id": -1 if math.isnan(vel[0]) else 100 + k,
+                      "range": f32(rng.uniform(0.3, 6)), "theta": f32(theta),
+                      "model_pos": [f32(rng.uniform(-4, 4)), f32(rng.uniform(-4, 4))], "model_vel": vel})
+    n = len(edges)
+    for i, e in enumerate(edges):  # ManualSelection.h linkEdges
+        e["gap_neighbor"] = i + 1 if i % 2 == 0 else i - 1
+        e["obstacle_neighbor"] = (i - 1 + n) % n if i % 2 == 0 else (i + 1) % n
+    return edges
+
+
+def random_scan_idx(rng, edges):
+    """A candidate point's scan ray: on an edge, a ray or two off, far from any, or unknown."""
+    r = rng.random()
+    if edges and r < 0.6:
+        return rng.choice(edges)["scan_idx"] + rng.choice([0, 0, 1, -2])
+    return -1 if r < 0.8 else rng.randrange(512)
+
+
+def random_sample(rng, n):
+    """A ManualGapSample's fields, with the corner cases the recorder produces."""
+    yaw = rng.uniform(-math.pi, math.pi)
+    sample = {
+        "robot_pose": [rng.uniform(-5, 5), rng.uniform(-5, 5), math.sin(yaw / 2), math.cos(yaw / 2)],
+        "robot_vel": [rng.uniform(0, 1), rng.uniform(-0.1, 0.1), rng.uniform(-1, 1)],
+        "goal": [rng.uniform(-10, 10), rng.uniform(-10, 10)],
+        "waypoint": [rng.uniform(0, 3), rng.uniform(-2, 2)],
+        "candidates": [],
+        "edges": random_edges(rng, rng.randint(0, 4) if n else 0),
+    }
+    for i in range(n):
+        feasible = rng.random() > 0.2
+        lt, rt = rng.uniform(-math.pi, math.pi), rng.uniform(-math.pi, math.pi)
+        terminal_cost = f32(rng.uniform(0, 5))
+        clearance_cost = f32(rng.choice([rng.uniform(0, 1), rng.uniform(0, 1), math.inf]))
+        if rng.random() < 0.15:  # not scored (schema 1, or no costs this tick)
+            terminal_cost = clearance_cost = math.nan
+        c = {
+            "feasible": feasible,
+            "shown": feasible and rng.random() > 0.1,
+            "left_range": f32(rng.uniform(0.3, 6)), "left_theta": f32(lt),
+            "right_range": f32(rng.uniform(0.3, 6)), "right_theta": f32(rt),
+            "bearing": f32((lt + rt) / 2),
+            "left_scan_idx": random_scan_idx(rng, sample["edges"]),
+            "right_scan_idx": random_scan_idx(rng, sample["edges"]),
+            "left_model": [f32(rng.uniform(-4, 4)) for _ in range(4)],
+            "right_model": [f32(rng.uniform(-4, 4)) for _ in range(4)],
+            "terminal": [rng.uniform(-8, 8), rng.uniform(-8, 8)] if feasible else [0.0, 0.0],
+            "dg_terminal_cost": terminal_cost, "dg_clearance_cost": clearance_cost,
+            "dg_cost": (terminal_cost + clearance_cost) if feasible else math.inf,
+        }
+        if rng.random() < 0.05:
+            c["left_model"][2] = math.nan  # a model without a velocity estimate
+        sample["candidates"].append(c)
+    return sample
+
+
+def as_example(sample):
+    """The example il_dataset.py builds from this sample."""
+    x, y, qz, qw = sample["robot_pose"]
+    pose = SimpleNamespace(position=SimpleNamespace(x=x, y=y), orientation=SimpleNamespace(x=0.0, y=0.0, z=qz, w=qw))
+    cands = []
+    for c in sample["candidates"]:
+        cands.append({
+            "feasible": c["feasible"], "shown": c["shown"],
+            "left_range": c["left_range"], "left_theta": c["left_theta"],
+            "right_range": c["right_range"], "right_theta": c["right_theta"], "bearing": c["bearing"],
+            "left_scan_idx": c["left_scan_idx"], "right_scan_idx": c["right_scan_idx"],
+            "left_model": c["left_model"], "right_model": c["right_model"],
+            "terminal_rbt": il_dataset.to_robot_frame(c["terminal"][0], c["terminal"][1], pose)
+            if c["feasible"] else [math.nan, math.nan],
+            "dg_terminal_cost": c["dg_terminal_cost"], "dg_clearance_cost": c["dg_clearance_cost"],
+            "dg_cost": c["dg_cost"],
+        })
+    return {"candidates": cands, "label": 0, "robot_vel": sample["robot_vel"], "goal": sample["goal"],
+            "local_waypoint": sample["waypoint"], "edges": sample["edges"]}
+
+
+def expected(model, sample):
+    ex = as_example(sample)
+    if not ex["candidates"]:
+        ctx = [il_model.finite(x) for x in ex["robot_vel"] + ex["goal"] + ex["local_waypoint"]]
+        return {"cand": [], "ctx": ctx, "dg": [], "dg_avail": [], "mask": [], "scores": [], "choice": -1}
+    item = il_model.featurize(ex)
+    # at run time nothing is forced selectable (featurize makes the label so)
+    item["mask"] = np.array([il_model.selectable(c) for c in as_example(sample)["candidates"]])
+    with torch.no_grad():
+        scores = il_model.scores(model, il_model.collate([item]))[0].tolist()
+    # the planner's choice: any option, infinite DynamicGap cost included
+    choice = max((i for i, m in enumerate(item["mask"]) if m), key=lambda i: scores[i], default=-1)
+    return {"cand": item["cand"].tolist(), "ctx": item["ctx"].tolist(), "dg": item["dg"].tolist(),
+            "dg_avail": item["dg_avail"].tolist(), "mask": item["mask"].tolist(),
+            "scores": scores, "choice": choice}
+
+
+def write_fixture(out_dir, name, model, samples):
+    os.makedirs(out_dir, exist_ok=True)
+    il_train.export_scorer(model, os.path.join(out_dir, name + "_model.json"))
+    cases = []
+    for s in samples:
+        case = {"sample": copy.deepcopy(s), **expected(model, s)}
+        for c in case["sample"]["candidates"]:
+            for k in ("dg_terminal_cost", "dg_clearance_cost", "dg_cost"):
+                c[k] = json_float(c[k])
+            c["left_model"] = [json_float(v) for v in c["left_model"]]
+        for e in case["sample"]["edges"]:
+            e["model_vel"] = [json_float(v) for v in e["model_vel"]]
+        cases.append(case)
+    with open(os.path.join(out_dir, name + "_cases.json"), "w") as f:
+        json.dump({"model": name + "_model.json", "cases": cases}, f)
+    print("wrote {} ({} cases)".format(os.path.join(out_dir, name + "_cases.json"), len(cases)))
+
+
+def random_model(seed, **kwargs):
+    """A small model with every weight random (the score head starts at zero otherwise)."""
+    torch.manual_seed(seed)
+    rng = np.random.RandomState(seed)
+    nc, nx, ns = len(il_model.CANDIDATE_FEATURES), len(il_model.CONTEXT_FEATURES), len(il_model.SCENE_FEATURES)
+    norm = {"cand_mean": rng.uniform(-1, 1, nc), "cand_std": rng.uniform(0.5, 2, nc),
+            "ctx_mean": rng.uniform(-1, 1, nx), "ctx_std": rng.uniform(0.5, 2, nx),
+            "scene_mean": rng.uniform(-1, 1, ns), "scene_std": rng.uniform(0.5, 2, ns)}
+    model = il_model.GapScorer(norm, **kwargs)
+    with torch.no_grad():
+        for p in model.parameters():
+            p.normal_(0.0, 0.5)
+    return model.eval()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--out", default=FIXTURE_DIR)
+    parser.add_argument("--model", help="an exported gap_scorer.json instead of the random models")
+    parser.add_argument("--name", default="exported")
+    parser.add_argument("--cases", type=int, default=12)
+    args = parser.parse_args()
+
+    rng = random.Random(7)
+    samples = [random_sample(rng, n) for n in [0, 1] + [rng.randint(2, 7) for _ in range(args.cases - 2)]]
+    if args.model:
+        model = il_train.load_exported(args.model)
+        write_fixture(args.out, args.name, model, samples)
+        return
+    every = il_model.inputs_of(list(il_model.INPUT_GROUPS))
+    write_fixture(args.out, "attention", random_model(1, hidden=8, heads=2, inputs=every, scene=True), samples)
+    write_fixture(args.out, "no_attention_subset",
+                  random_model(2, hidden=6, heads=3, attention=False, residual=False, scene=True,
+                               inputs=il_model.inputs_of(["gvel", "goal", "terminal", "edges"])), samples)
+    write_fixture(args.out, "linear", random_model(3, network=False), samples)
+
+
+if __name__ == "__main__":
+    main()

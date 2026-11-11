@@ -62,6 +62,38 @@ namespace dynamic_gap
         return traj;
     }
 
+    Trajectory GapTrajectoryGenerator::generateTrajectoryToPointV2(const geometry_msgs::PoseStamped & currPose,
+                                                                const geometry_msgs::PoseStamped & targetPoint) {
+        geometry_msgs::PoseArray path;
+        std::vector<float> pathTiming;
+
+        path.header.stamp = currPose.header.stamp;
+        path.header.frame_id = cfg_->sensor_frame_id;
+
+        // state: [robot x, robot y, 0, 0, 0, 0, goal x, goal y]
+        // indices 2-5 (gap points) are unused by GoToGoal, safe to zero
+        robotAndGapState x = {currPose.pose.position.x, currPose.pose.position.y,
+                            0.0, 0.0, 0.0, 0.0,
+                            targetPoint.pose.position.x, targetPoint.pose.position.y};
+
+        float desiredHeading = std::atan2(targetPoint.pose.position.y - currPose.pose.position.y,
+                                        targetPoint.pose.position.x - currPose.pose.position.x);
+        Eigen::Quaternionf desiredQ = Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+                                        Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+                                        Eigen::AngleAxisf(desiredHeading, Eigen::Vector3f::UnitZ());
+        desiredQ.normalize();
+
+        TrajectoryLogger logger(path, pathTiming, cfg_->robot_frame_id, desiredQ);
+        GoToGoal goToGoal(cfg_->rbt.vx_absmax);
+
+        boost::numeric::odeint::integrate_const(boost::numeric::odeint::euler<robotAndGapState>(),
+                                        goToGoal, x, 0.0f, cfg_->traj.integrate_maxt,
+                                        cfg_->traj.integrate_stept, logger);
+
+        Trajectory traj(path, pathTiming);
+        return traj;
+    }
+
     Trajectory GapTrajectoryGenerator::generateTrajectoryV2(Gap * selectedGap, 
                                                             const geometry_msgs::PoseStamped & currPose, 
                                                             // const geometry_msgs::TwistStamped & currVel,

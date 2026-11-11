@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Run gap scorers in closed loop on held-out scenarios, record RViz, measure each episode.
+
+For each model: one benchmark launch of SUITE with the learned scorer driving
+(learned_gap_scorer:=true) and IL recording on, on a virtual display (Xvfb) of its own
+whose screen ffmpeg records. Afterwards per episode: outcome, time to the goal, path
+length, collisions, planner stalls (il_eval.py), and the episode's part of the screen
+recording as its own video.
+
+Usage (workspace sourced; ROS_MASTER_URI sets the port, e.g. http://localhost:11312):
+  il_eval_model --model full=/home/abdel/il_data/models/il_small_v1_full_seed0 \\
+                --model nocoll=/home/abdel/il_data/models/il_small_v1_no_collisions_seed0 \\
+                [--suite il_eval_heldout_v1.yaml] --out /home/abdel/il_data/evals/<name>
+  il_eval_model --report-only --out DIR   (recompute metrics and videos of earlier runs)
+
+Writes DIR/<model>/{sessions/, screen.mp4, videos/epNN_<stage>.mp4, metrics.csv, run.yaml,
+launch.log} and DIR/summary.csv (one row per model). With IL_DRIVE_REMOTE set, each model's folder
+is then uploaded to the Drive and its videos deleted locally (il_upload_eval; --keep-videos keeps
+them). A model is a run folder of il_train (gap_scorer.json in it) or the gap_scorer.json itself. Only processes this driver started
+are watched and stopped; it refuses a port that is in use.
+"""
+
+import argparse
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+
+import rospkg
+import yaml
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_drive  # noqa: E402
+import il_eval  # noqa: E402
+from il_launch import (LAUNCH_PATTERN, PLANNER_PATTERN, benchmark_runs, launch_env,  # noqa: E402
+                       master_port, port_in_use, running, stop_launch)
+
+SCREEN = "1280x1024"  # arena.rviz opens a 1208x960 window at (72, 27)
+FPS = 10
+
+
+def scorer_path(path):
+    path = os.path.abspath(os.path.expanduser(path))
+    return os.path.join(path, "gap_scorer.json") if os.path.isdir(path) else path
+
+
+def free_display():
+    for n in range(90, 200):
+        if not os.path.exists("/tmp/.X11-unix/X{}".format(n)) and not os.path.exists("/tmp/.X{}-lock".format(n)):
+            return n
+    sys.exit("no free X display number")
+
+
+def start_screen(out_dir):
+    """A virtual display and ffmpeg recording it: (display, Xvfb, ffmpeg, recording start)."""
+    n = free_display()
+    xvfb = subprocess.Popen(["Xvfb", ":{}".format(n), "-screen", "0", SCREEN + "x24", "-nolisten", "tcp"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    end = time.time() + 10
+    while not os.path.exists("/tmp/.X11-unix/X{}".format(n)):
+        if time.time() > end or xvfb.poll() is not None:
+            sys.exit("Xvfb did not start on :{}".format(n))
+        time.sleep(0.2)
+    log = open(os.path.join(out_dir, "ffmpeg.log"), "w")
+    ffmpeg = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0",
+                               "-video_size", SCREEN,
+                               "-framerate", str(FPS), "-i", ":{}".format(n), "-c:v", "libx264", "-preset", "veryfast",
+                               "-crf", "26", "-pix_fmt", "yuv420p", os.path.join(out_dir, "screen.mp4")],
+                              stdin=subprocess.PIPE, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    return n, xvfb, ffmpeg, time.time()
+
+
+def stop_screen(xvfb, ffmpeg):
+    try:
+        ffmpeg.communicate(b"q", timeout=30)  # ffmpeg finishes the file on q
+    except subprocess.TimeoutExpired:
+        ffmpeg.send_signal(signal.SIGINT)
+        ffmpeg.wait(30)
+    xvfb.terminate()
+    xvfb.wait(10)
+
+
+def run_model(name, scorer, suite_file, stages, out_dir, log):
+    """One benchmark launch of the suite with this scorer; returns run.yaml's content."""
+    os.makedirs(out_dir, exist_ok=True)
+    timeout = sum(int(s["episodes"]) * (float(s.get("timeout") or 180) + 20) for s in stages) + 180
+    display, xvfb, ffmpeg, rec_start = start_screen(out_dir)
+    started = time.time()
+    print("{} {}: launching ({} episodes, display :{})".format(
+        time.strftime("%H:%M:%S"), name, sum(int(s["episodes"]) for s in stages), display), file=log, flush=True)
+    session = "eval_{}_{}".format(name, time.strftime("%Y-%m-%d_%H-%M-%S"))
+    with open(os.path.join(out_dir, "launch.log"), "w") as out:
+        subprocess.Popen(["roslaunch", "-p", master_port(), "arena_bringup", "start_trials.launch",
+                          "learned_gap_scorer:=true", "learned_gap_scorer_path:=" + scorer,
+                          "tm_modules:=benchmark", "benchmark_suite:=" + suite_file, "record_il:=true",
+                          "il_data_root:=" + os.path.join(out_dir, "sessions"), "il_operator:=model_" + name,
+                          "il_session:=" + session],
+                         stdout=out, stderr=subprocess.STDOUT, start_new_session=True,
+                         # no "Noetic end-of-life" dialog over the RViz view
+                         env=launch_env(DISPLAY=":{}".format(display), LIBGL_ALWAYS_SOFTWARE="1",
+                                        QT_QPA_PLATFORM="xcb", DISABLE_ROS1_EOL_WARNINGS="1"))
+    benchmark_dir = os.path.join(rospkg.RosPack().get_path("arena_bringup"), "configs", "benchmark")
+    planner_lost, missing_since, status = False, None, "timeout"
+    time.sleep(20)
+    while time.time() - started < timeout:
+        runs = benchmark_runs(benchmark_dir, suite_file, started)
+        if any(ok for _, ok in runs):
+            status = "completed"
+            break
+        if not (running(LAUNCH_PATTERN) or running("rosmaster") or running("delay_restart.py")):
+            status = "launch ended"
+            break
+        if running(PLANNER_PATTERN) or running("delay_restart.py"):
+            missing_since = None
+        else:
+            # move_base_flex gone (crash): the run goes on, its episodes are not valid
+            missing_since = missing_since or time.time()
+            if time.time() - missing_since > 60 and not planner_lost:
+                planner_lost = True
+                print("{} {}: move_base_flex is gone, the remaining episodes are not valid".format(
+                    time.strftime("%H:%M:%S"), name), file=log, flush=True)
+        time.sleep(5)
+    time.sleep(5)  # the recorder closes its bag after the master stops
+    stop_launch()
+    stop_screen(xvfb, ffmpeg)
+    runs = benchmark_runs(benchmark_dir, suite_file, started)
+    sessions = [os.path.join(out_dir, "sessions", "il_gap_selection", "{}_{}".format(runid, stages[0]["name"]))
+                for runid, _ in runs]
+    run = {"model": name, "scorer": scorer, "suite": suite_file, "status": status, "planner_lost": planner_lost,
+           "session": next((s for s in sessions if os.path.isdir(s)), None),
+           "screen": os.path.join(out_dir, "screen.mp4"), "screen_start_wall": rec_start}
+    with open(os.path.join(out_dir, "run.yaml"), "w") as f:
+        yaml.safe_dump(run, f, sort_keys=False)
+    print("{} {}: {} ({})".format(time.strftime("%H:%M:%S"), name, status, run["session"]), file=log, flush=True)
+    return run
+
+
+def cut_videos(run, rows, out_dir):
+    """One video per episode, cut from the screen recording by episodes.csv's wall times."""
+    if not run["session"] or not os.path.exists(run["screen"]):
+        return
+    windows = il_eval.episode_windows(run["session"])
+    for row in rows:
+        start, end = windows.get(row["episode"], (None, None))
+        if start is None:
+            continue
+        begin = max(start - run["screen_start_wall"] - 1.0, 0.0)
+        length = (end - start + 2.0) if end is not None else None
+        path = os.path.join(out_dir, "videos", "ep{:02d}_{}.mp4".format(row["episode"], row["stage"] or "episode"))
+        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", "{:.2f}".format(begin), "-i", run["screen"]]
+        if length is not None:
+            cmd += ["-t", "{:.2f}".format(length)]
+        subprocess.run(cmd + ["-c:v", "libx264", "-preset", "veryfast", "-crf", "26", "-pix_fmt", "yuv420p", path],
+                       check=False)
+        row["video"] = os.path.relpath(path, out_dir)
+
+
+def report(out_root, names, stages):
+    table = []
+    for name in names:
+        out_dir = os.path.join(out_root, name)
+        with open(os.path.join(out_dir, "run.yaml")) as f:
+            run = yaml.safe_load(f)
+        if not run["session"]:
+            print("{}: no session recorded (status {})".format(name, run["status"]))
+            continue
+        il_eval.output_dirs(out_dir)
+        rows = il_eval.episode_metrics(run["session"], stages)
+        cut_videos(run, rows, out_dir)
+        il_eval.write_csv(rows, os.path.join(out_dir, "metrics.csv"))
+        s = dict(model=name, status=run["status"], **il_eval.summary(rows))
+        table.append(s)
+        print("\n== {} ({})".format(name, run["session"]))
+        for r in rows:
+            print("  ep{:2d} {:32s} {:12s}{} t={:6} path={:5}m contacts={} min_ped={}m stall={}s".format(
+                r["episode"], r["stage"], r["result"], "" if r["valid"] else " INVALID",
+                r["time_to_goal_s"] if r["time_to_goal_s"] is not None else "-", r["path_length_m"],
+                r["contacts"], r["min_ped_dist_m"], r["planner_stall_s"]))
+    il_eval.write_csv(table, os.path.join(out_root, "summary.csv"))
+    print()
+    for s in table:
+        print("{model:10s} success {goal_reached}/{valid_episodes} (of {episodes}), mean time to goal {mean_time_to_goal_s} s, "
+              "collision episodes {collision_episodes}, contacts {contacts} ({contact_time_s} s), "
+              "closest pedestrian {min_ped_dist_m} m".format(**s))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--model", action="append", default=[], help="NAME=PATH (run folder or gap_scorer.json)")
+    parser.add_argument("--suite", default="il_eval_heldout_v1.yaml", help="file in arena_bringup/configs/benchmark/suites")
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--report-only", action="store_true", help="only recompute metrics and videos of DIR's runs")
+    parser.add_argument("--keep-videos", action="store_true",
+                        help="when IL_DRIVE_REMOTE is set: upload the run but keep its videos local (il_upload_eval)")
+    args = parser.parse_args()
+    suites_dir = os.path.join(rospkg.RosPack().get_path("arena_bringup"), "configs", "benchmark", "suites")
+    with open(os.path.join(suites_dir, args.suite)) as f:
+        stages = yaml.safe_load(f)["stages"]
+
+    if args.report_only:
+        names = sorted(d for d in os.listdir(args.out) if os.path.exists(os.path.join(args.out, d, "run.yaml")))
+        return report(args.out, names, stages)
+
+    models = []
+    for spec in args.model:
+        name, _, path = spec.partition("=")
+        if not name or not path or "/" in name:
+            parser.error("--model takes NAME=PATH, got {}".format(spec))
+        if not os.path.exists(scorer_path(path)):
+            parser.error("no gap_scorer.json at {}".format(scorer_path(path)))
+        models.append((name, scorer_path(path)))
+    if not models:
+        parser.error("give at least one --model NAME=PATH")
+    for tool in ("Xvfb", "ffmpeg"):
+        if shutil.which(tool) is None:
+            sys.exit("{} is not installed".format(tool))
+    if port_in_use():
+        sys.exit("a rosmaster, launch or benchmark relaunch is already running on port {}"
+                 " (set ROS_MASTER_URI to use another)".format(master_port()))
+    os.makedirs(args.out, exist_ok=True)
+    for name, scorer in models:
+        if os.path.exists(os.path.join(args.out, name)):
+            sys.exit("{} exists; use another --out or model name".format(os.path.join(args.out, name)))
+    for name, scorer in models:
+        run_model(name, scorer, args.suite, stages, os.path.join(args.out, name), sys.stdout)
+    report(args.out, [name for name, _ in models], stages)
+    remote, operator = os.environ.get("IL_DRIVE_REMOTE"), os.environ.get("IL_OPERATOR")
+    if remote:
+        # after report(): the episode videos are cut from screen.mp4, so it can go only now
+        print()
+        if not operator:
+            print("IL_OPERATOR is not set: nothing uploaded (il_upload_eval --operator NAME {})".format(args.out))
+            return
+        for name, _ in models:
+            d = os.path.join(args.out, name)
+            if il_drive.upload_eval(d, remote, operator, keep_videos=args.keep_videos) < 0:
+                print("upload of {} failed, its videos stay local; retry: il_upload_eval {}".format(name, d))
+
+
+if __name__ == "__main__":
+    main()

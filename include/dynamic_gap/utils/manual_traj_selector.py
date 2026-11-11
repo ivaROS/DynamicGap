@@ -4,7 +4,10 @@ from std_msgs.msg import Int32
 
 def main():
     rospy.init_node("manual_traj_selector")
-    pub = rospy.Publisher("/manual_traj_selection", Int32, queue_size=1)
+    # the planner listens in its robot namespace; override with
+    # _topic:=/<robot>/manual_traj_selection
+    topic = rospy.get_param("~topic", "/rto/manual_traj_selection")
+    pub = rospy.Publisher(topic, Int32, queue_size=1)
 
     print("Manual trajectory selector started.")
     print("Type an integer candidate ID and press Enter.")

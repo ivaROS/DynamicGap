@@ -1,4 +1,5 @@
 #include <dynamic_gap/visualization/GoalVisualizer.h>
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace dynamic_gap
 {
@@ -9,6 +10,7 @@ namespace dynamic_gap
         globalPathLocalWaypointPublisher = nh.advertise<visualization_msgs::Marker>("global_path_local_waypoint", 10);
         gapGoalPositionsPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goal_positions", 10);
         gapGoalVelocitiesPublisher = nh.advertise<visualization_msgs::MarkerArray>("gap_goal_velocities", 10);
+        goalArrowPublisher = nh.advertise<visualization_msgs::Marker>("goal_arrow", 10);
         
 
         gapGoalsColor.r = 1.0;
@@ -30,6 +32,10 @@ namespace dynamic_gap
         globalGoalColor.g = 1.;
         globalGoalColor.b = 0.;
         globalGoalColor.a = 1;        
+
+        // faint, so it does not hide the candidates
+        goalArrowColor = globalGoalColor;
+        goalArrowColor.a = 0.2;
     }
 
     void GoalVisualizer::drawGlobalGoal(const geometry_msgs::PoseStamped & globalGoalOdomFrame)
@@ -60,6 +66,52 @@ namespace dynamic_gap
         globalGoalMarker.scale.z = 0.1;
         globalGoalMarker.color = globalGoalColor;
         globalGoalPublisher.publish(globalGoalMarker);        
+    }
+
+    void GoalVisualizer::drawGoalArrow(const geometry_msgs::PoseStamped & rbtPoseOdomFrame,
+                                       const geometry_msgs::PoseStamped & globalGoalOdomFrame)
+    {
+        // First, clearing topic.
+        clearMarkerPublisher(goalArrowPublisher);
+
+        if (globalGoalOdomFrame.header.frame_id.empty())
+        {
+            ROS_WARN_STREAM_NAMED("Visualizer", "[drawGoalArrow] Global goal frame_id is empty");
+            return;
+        }
+
+        visualization_msgs::Marker arrowMarker;
+        arrowMarker.header.frame_id = globalGoalOdomFrame.header.frame_id;
+        arrowMarker.header.stamp = globalGoalOdomFrame.header.stamp;
+        arrowMarker.ns = "goal_arrow";
+        arrowMarker.id = 0;
+        arrowMarker.type = visualization_msgs::Marker::ARROW;
+        arrowMarker.action = visualization_msgs::Marker::ADD;
+
+        arrowMarker.pose.position.x = rbtPoseOdomFrame.pose.position.x;
+        arrowMarker.pose.position.y = rbtPoseOdomFrame.pose.position.y;
+        arrowMarker.pose.position.z = 0.01;
+
+        float dx = globalGoalOdomFrame.pose.position.x - rbtPoseOdomFrame.pose.position.x;
+        float dy = globalGoalOdomFrame.pose.position.y - rbtPoseOdomFrame.pose.position.y;
+        float dist = std::sqrt(dx * dx + dy * dy);
+        float heading = (dist < std::numeric_limits<float>::epsilon()) ? 0.0 : std::atan2(dy, dx);
+
+        tf2::Quaternion quat;
+        quat.setRPY(0.0, 0.0, heading);
+        arrowMarker.pose.orientation.x = quat.getX();
+        arrowMarker.pose.orientation.y = quat.getY();
+        arrowMarker.pose.orientation.z = quat.getZ();
+        arrowMarker.pose.orientation.w = quat.getW();
+
+        arrowMarker.scale.x = dist + 0.000001;
+        arrowMarker.scale.y = 0.1;
+        arrowMarker.scale.z = 0.1;
+
+        arrowMarker.color = goalArrowColor;
+        arrowMarker.lifetime = ros::Duration(0);
+
+        goalArrowPublisher.publish(arrowMarker);
     }
 
     void GoalVisualizer::drawGlobalPathLocalWaypoint(const geometry_msgs::PoseStamped & globalPathLocalWaypoint)

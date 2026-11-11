@@ -1,0 +1,52 @@
+# Workspace of the imitation-learning (manual gap selection) lab PC, for `vcs import src < il.repos`.
+# The four IL repos (DynamicGap, arena-rosnav, arena-evaluation, arena-simulation-setup, branch
+# imitation_learning) are cloned by the Dockerfile. Everything here is pinned to the commit the lab PC builds.
+repositories:
+  arena/utils/pedsim_ros:
+    type: git
+    url: https://github.com/ivaROS/pedsim_ros.git
+    version: global_path_custom_ped
+  arena/utils/3rd-party-robot-packages:
+    type: git
+    url: https://github.com/Arena-Rosnav/3rd-party-robot-packages
+    version: 8b60c1169626568bf734a07c3b0f13b06d3e2871
+  arena/utils/actionlib:
+    type: git
+    url: https://github.com/ivaROS/actionlib.git
+    version: 6710219fbd38c90246543883b06d80e14e7ec7e4
+  arena/utils/flatland:
+    type: git
+    url: https://github.com/ivaROS/flatland.git
+    version: 88ef913b931c5492eb8e7bb5f87796760394a1a5
+  arena/utils/move_base_flex:
+    type: git
+    url: https://github.com/Arena-Rosnav/move_base_flex.git
+    version: c3613d87e3e7c65d85225feb3f90350023c1361a
+  arena/utils/navigation:
+    type: git
+    url: https://github.com/ivaROS/navigation.git
+    version: cf6d1d2a7e5e4cf56e56610299e72d674b2896f9
+  arena/utils/stable-baselines3:
+    type: git
+    url: https://github.com/tuananhroman/stable-baselines3.git
+    version: 03cd2dfe9a3b56a3fea76443b6bb04fd8af7d295
+  arena/utils/unitree_ros:
+    type: git
+    url: https://github.com/voshch/unitree_ros
+    version: 8be8a62854c7616aefa45b09b8ab467cefcccfc1
+  arena/utils/mod_rto_scan:
+    type: git
+    url: https://github.com/ivaROS/mod_rto_scan
+    version: e45bd3f9732960b33f77967316a74f38578add0d
+  extern/ford_msgs:
+    type: git
+    url: https://bitbucket.org/acl-swarm/ford_msgs/master/
+    version: b01f3ff4a704d4630824a1cdff2ffaa236464be8
+  extern/gazebo_ros_2Dmap_plugin:
+    type: git
+    url: https://github.com/marinaKollmitz/gazebo_ros_2Dmap_plugin.git
+    version: 0820610f46235cd7ce1458ea030ef83b1616da37
+  extern/jackal:
+    type: git
+    url: https://github.com/jackal/jackal.git
+    version: 85e16bd7b3ea72a4b5a2d3ca8224e056d7ab1c70

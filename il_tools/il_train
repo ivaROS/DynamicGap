@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Train the gap scorer (il_model.py) on a dataset of il_build_dataset.
+
+Usage: il_train --data DATASET_DIR --out RUN_DIR [options]
+Writes RUN_DIR/{model.pt,gap_scorer.json,result.json,history.csv} (and model.onnx with --onnx).
+gap_scorer.json is the model for the planner (/learned_gap_scorer_path).
+"""
+
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_model  # noqa: E402
+import il_train  # noqa: E402
+
+
+def main():
+    d = il_train.DEFAULTS
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--data", required=True)
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--linear", action="store_true", help="the linear model: DynamicGap's costs, learned weights")
+    parser.add_argument("--residual", action="store_true",
+                        help="add the term on DynamicGap's costs (learned weights) to the network's score")
+    parser.add_argument("--no-scene", action="store_true", help="without the scene's edges")
+    parser.add_argument("--no-attention", action="store_true", help="score each gap on its own")
+    parser.add_argument("--groups", default=",".join(d["groups"]),
+                        help="input groups, of: " + ", ".join(il_model.INPUT_GROUPS))
+    for k in ("hidden", "epochs", "batch", "patience", "seed"):
+        parser.add_argument("--" + k, type=int, default=d[k])
+    for k in ("dropout", "lr", "weight_decay", "switch_weight", "disagree_weight", "terminal_weight_init"):
+        parser.add_argument("--" + k.replace("_", "-"), type=float, default=d[k])
+    parser.add_argument("--terminal-weight-min", type=float, default=None,
+                        help="floor on the terminal-cost weight, kept through training (default: none)")
+    parser.add_argument("--log-every", type=int, default=1)
+    parser.add_argument("--onnx", action="store_true")
+    args = parser.parse_args()
+    if os.path.exists(args.out) and os.listdir(args.out):
+        sys.exit("output folder {} is not empty".format(args.out))
+
+    groups = [g for g in args.groups.split(",") if g]
+    unknown = set(groups) - set(il_model.INPUT_GROUPS)
+    if unknown:
+        parser.error("unknown input groups: {}".format(", ".join(sorted(unknown))))
+    cfg = {"network": not args.linear, "residual": args.linear or args.residual,
+           "attention": not args.no_attention, "scene": not args.no_scene, "groups": groups}
+    cfg.update({k: getattr(args, k) for k in ("hidden", "epochs", "batch", "patience", "seed", "dropout", "lr",
+                                              "weight_decay", "switch_weight", "disagree_weight",
+                                              "terminal_weight_init", "terminal_weight_min")})
+    model, _ = il_train.train(args.data, cfg, args.out, log_every=args.log_every)
+    if args.onnx:
+        il_train.export_onnx(model, os.path.join(args.out, "model.onnx"))
+    print("saved to {}".format(args.out))
+
+
+if __name__ == "__main__":
+    main()

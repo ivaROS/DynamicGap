@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Run an il_goal_cursor collection suite unattended, one stage (map) per launch,
+restarting a stage when move_base_flex dies.
+
+move_base_flex (mbf_costmap_nav) can segfault in libmbf_abstract_server at an
+episode reset; the simulation keeps running, the planner never ticks again and
+every remaining episode times out with the robot still. This driver launches
+each stage of SUITE on its own (a one-stage suite written next to it), watches
+for mbf_costmap_nav to disappear, and then stops the launch and starts the
+stage again for the episodes not yet finished (each launch is its own session).
+
+Usage (workspace sourced):
+  il_goal_cursor_collect SUITE.yaml --data-root /home/abdel/il_data [--operator goal_cursor]
+                         [--stages map_empty_medium_goal_cursor,...] [--log-dir DIR]
+SUITE is a file name in arena_bringup/configs/benchmark/suites. The launches use the
+master port of ROS_MASTER_URI (default 11311); only processes this driver started are
+watched and stopped, so a run on another port is left alone.
+"""
+
+import argparse
+import os
+import subprocess
+import sys
+import time
+
+import rospkg
+import yaml
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_bags  # noqa: E402
+
+from il_launch import (LAUNCH_PATTERN, PLANNER_PATTERN, TAG, benchmark_runs,  # noqa: E402,F401
+                       launch_env, master_port, pids, port_in_use, running, stop_launch)
+
+
+def finished_episodes(session_dir):
+    """Episodes of a session that ended: an episode ends when the next one begins."""
+    begins = [int(r["episode"]) for r in il_bags.load_episode_events(session_dir) if r["event"] == "begin"]
+    return max(begins, default=0)
+
+
+def run_stage(stage, suites_dir, args, log):
+    """Run one stage until all its episodes are finished."""
+    remaining, attempt, failed = stage["episodes"], 0, 0
+    while remaining > 0:
+        attempt += 1
+        name = "{}_r{}".format(stage["name"], attempt) if attempt > 1 else stage["name"]
+        # per port: drivers on other ports run the same stage names
+        suite_file = "il_goal_cursor_collect_{}_{}.yaml".format(master_port(), name)
+        with open(os.path.join(suites_dir, suite_file), "w") as f:
+            yaml.safe_dump({"stages": [dict(stage, name=name, episodes=remaining)]}, f, sort_keys=False)
+        launch_log = os.path.join(args.log_dir, "launch_{}_{}.log".format(master_port(), name))
+        print("{} {}: launching for {} episode(s)".format(time.strftime("%H:%M:%S"), name, remaining), file=log, flush=True)
+        started = time.time()
+        with open(launch_log, "w") as out:  # the launch keeps its own copy
+            subprocess.Popen(["roslaunch", "-p", master_port(), "arena_bringup", "start_trials.launch", "man_gap:=true",
+                              "il_goal_cursor:=true", "tm_modules:=benchmark", "benchmark_suite:=" + suite_file,
+                              "record_il:=true", "il_data_root:=" + args.data_root, "il_operator:=" + args.operator],
+                             stdout=out, stderr=subprocess.STDOUT, start_new_session=True,
+                             env=launch_env())
+        seen_planner, crashed, missing_since = False, False, None
+        time.sleep(20)
+        # the benchmark's first launch relaunches itself through delay_restart.py
+        while running(LAUNCH_PATTERN) or running("rosmaster") or running("delay_restart.py"):
+            if running(PLANNER_PATTERN) or running("delay_restart.py"):
+                # a pending benchmark relaunch: the planner comes back with it
+                seen_planner, missing_since = seen_planner or running(PLANNER_PATTERN), None
+            elif seen_planner:
+                # gone for 60 s: a relaunch's new launch also takes a while to start it
+                missing_since = missing_since or time.time()
+                if time.time() - missing_since > 60:
+                    crashed = True
+                    break
+            time.sleep(5)
+        # this launch's benchmark run: its log names the suite file, its sessions the run id
+        runs = benchmark_runs(os.path.dirname(suites_dir), suite_file, started)
+        done = sum(finished_episodes(os.path.join(args.data_root, "il_gap_selection", "{}_{}".format(runid, name)))
+                   for runid, _ in runs)
+        if any(ok for _, ok in runs):
+            # the suite ended (the benchmark kills rosmaster): all episodes ran, also
+            # when move_base_flex went first during the shutdown
+            done = remaining
+            print("{} {}: finished".format(time.strftime("%H:%M:%S"), name), file=log, flush=True)
+        elif crashed:
+            print("{} {}: move_base_flex died after {} finished episode(s); restarting".format(
+                time.strftime("%H:%M:%S"), name, done), file=log, flush=True)
+        else:
+            print("{} {}: the launch ended without completing the stage after {} finished episode(s)"
+                  " (see {}); restarting".format(time.strftime("%H:%M:%S"), name, done, launch_log),
+                  file=log, flush=True)
+        stop_launch()
+        os.remove(os.path.join(suites_dir, suite_file))
+        remaining -= done
+        failed = failed + 1 if done == 0 else 0
+        if remaining > 0 and failed >= 3:
+            print("{} {}: no progress in 3 launches in a row, skipping the stage".format(
+                time.strftime("%H:%M:%S"), name), file=log, flush=True)
+            return
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("suite")
+    parser.add_argument("--data-root", required=True)
+    parser.add_argument("--operator", default="goal_cursor")
+    parser.add_argument("--stages", default="", help="comma-separated stage names to run (default: all)")
+    parser.add_argument("--log-dir", default=None, help="launch logs (default: DATA_ROOT)")
+    args = parser.parse_args()
+    args.log_dir = args.log_dir or args.data_root
+    suites_dir = os.path.join(rospkg.RosPack().get_path("arena_bringup"), "configs", "benchmark", "suites")
+    with open(os.path.join(suites_dir, args.suite)) as f:
+        stages = yaml.safe_load(f)["stages"]
+    wanted = [s for s in args.stages.split(",") if s]
+    if wanted:
+        stages = [s for s in stages if s["name"] in wanted]
+    if port_in_use():
+        sys.exit("a rosmaster, launch or benchmark relaunch is already running on port {}"
+                 " (set ROS_MASTER_URI to use another)".format(master_port()))
+    for stage in stages:
+        run_stage(stage, suites_dir, args, sys.stdout)
+
+
+if __name__ == "__main__":
+    main()

@@ -35,6 +35,9 @@ namespace dynamic_gap
                                                     // const geometry_msgs::TwistStamped & currVel,
                                                     const geometry_msgs::PoseStamped & globalGoalRobotFrame);
 
+            Trajectory generateTrajectoryToPointV2(const geometry_msgs::PoseStamped & currPose,
+                                        const geometry_msgs::PoseStamped & targetPoint);
+
             /**
             * \brief generate local collision-free trajectory through gap
             * \param selectedGap gap through which trajectory will be generated

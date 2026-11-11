@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Show recorded labels in RViz while a session bag is played back
+(docs/IL_DATA_COLLECTION_PLAN.md, R-38).
+
+    rosbag play --clock SESSION_DIR/session_*.bag
+    il_replay_viewer _namespace:=rto
+
+Publishes /il_replay/markers (frame: the sample's odom frame): every candidate
+path (grey, infeasible ones not drawn), the selected one (green when the tick is
+a usable label, orange otherwise), the cursor point, and a text line with
+episode, tick, source and flags.
+"""
+
+import os
+import sys
+
+import rospy
+from geometry_msgs.msg import Point
+from manual_gap_msgs.msg import ManualGapSample
+from std_msgs.msg import ColorRGBA
+from visualization_msgs.msg import Marker, MarkerArray
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_bags  # noqa: E402
+
+SOURCES = {0: "none", 1: "cursor", 2: "click-to-move", 3: "model"}
+
+
+def color(r, g, b, a=1.0):
+    return ColorRGBA(r=r, g=g, b=b, a=a)
+
+
+def markers(sample):
+    out = MarkerArray()
+    clear = Marker(action=Marker.DELETEALL, ns="il_replay")
+    clear.header = sample.header
+    out.markers.append(clear)
+
+    usable = il_bags.is_usable_label(sample)
+    for i, c in enumerate(sample.candidates):
+        if not c.feasible:
+            continue
+        line = Marker(type=Marker.LINE_STRIP, ns="il_replay", id=i)
+        line.header = sample.header
+        line.pose.orientation.w = 1.0
+        selected = i == sample.selected_idx
+        line.scale.x = 0.08 if selected else 0.03
+        line.color = (color(0.1, 0.9, 0.1) if usable else color(1.0, 0.6, 0.0)) if selected else color(0.7, 0.7, 0.7, 0.8)
+        line.points = list(c.path)
+        out.markers.append(line)
+
+    if sample.cursor_valid:
+        cursor = Marker(type=Marker.SPHERE, ns="il_replay", id=1000)
+        cursor.header = sample.header
+        cursor.pose.position = sample.cursor_odom
+        cursor.pose.orientation.w = 1.0
+        cursor.scale.x = cursor.scale.y = cursor.scale.z = 0.25
+        cursor.color = color(0.2, 0.5, 1.0) if sample.cursor_live else color(0.5, 0.5, 0.5)
+        out.markers.append(cursor)
+
+    text = Marker(type=Marker.TEXT_VIEW_FACING, ns="il_replay", id=1001)
+    text.header = sample.header
+    text.pose.position = Point(x=sample.robot_pose_odom.position.x, y=sample.robot_pose_odom.position.y + 1.0, z=0.5)
+    text.pose.orientation.w = 1.0
+    text.scale.z = 0.3
+    text.color = color(1.0, 1.0, 1.0)
+    text.text = "ep {} tick {} {}{}{}{}".format(
+        sample.episode_id, sample.tick_seq, SOURCES.get(sample.source, "?"),
+        "" if sample.cursor_live else " cursor-not-live",
+        " reset-window" if sample.in_reset_window else "",
+        " LABEL" if usable else "")
+    out.markers.append(text)
+    return out
+
+
+def main():
+    rospy.init_node("il_replay_viewer")
+    namespace = rospy.get_param("~namespace", "rto")
+    pub = rospy.Publisher("/il_replay/markers", MarkerArray, queue_size=1)
+    rospy.Subscriber(il_bags.sample_topic(None, namespace), ManualGapSample, lambda s: pub.publish(markers(s)))
+    rospy.spin()
+
+
+if __name__ == "__main__":
+    main()

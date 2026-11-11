@@ -1,0 +1,21 @@
+# Imitation learning workspace (sourced from ~/.bashrc)
+source /opt/ros/noetic/setup.bash
+source /root/arena_ws/devel/setup.bash
+export ROS_MASTER_URI=http://127.0.0.1:11311/
+export ROS_IP=127.0.0.1
+export DISABLE_ROS1_EOL_WARNINGS=1
+export XDG_RUNTIME_DIR=/tmp/runtime-root
+mkdir -p -m 700 "$XDG_RUNTIME_DIR"
+# OpenGL for RViz: the NVIDIA driver when the container was started with --gpus on a Linux host
+# (the NVIDIA toolkit then mounts libGLX_nvidia), otherwise software rendering (Windows/WSLg,
+# no GPU). IL_SOFTWARE_GL=1 forces software rendering.
+if [ "${IL_SOFTWARE_GL:-0}" != 1 ] && ls /usr/lib/x86_64-linux-gnu/libGLX_nvidia.so.* >/dev/null 2>&1; then
+    export __GLX_VENDOR_LIBRARY_NAME=nvidia
+else
+    export __GLX_VENDOR_LIBRARY_NAME=mesa LIBGL_ALWAYS_SOFTWARE=1
+fi
+export PATH="/root/arena_ws/src/planners/dynamic_gap/il_tools:$PATH"
+# Shared Google Drive folder (install guide Part 7): uploads go to ildrive:<operator>/...
+if [ -z "${IL_DRIVE_REMOTE:-}" ] && rclone listremotes 2>/dev/null | grep -qx 'ildrive:'; then
+    export IL_DRIVE_REMOTE=ildrive:
+fi

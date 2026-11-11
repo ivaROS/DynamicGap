@@ -25,6 +25,8 @@
 #include <dynamic_gap/utils/Gap.h>
 #include <dynamic_gap/utils/Trajectory.h>
 #include <dynamic_gap/utils/Utils.h>
+#include <dynamic_gap/utils/ManualSelection.h>
+#include <dynamic_gap/learned_selection/LearnedGapScorer.h>
 #include <dynamic_gap/gap_association/GapPointAssociator.h>
 #include <dynamic_gap/gap_detection/GapDetector.h>
 #include <dynamic_gap/gap_propagation/GapPropagator.h>
@@ -62,8 +64,12 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <std_msgs/Int16.h>
 #include <std_msgs/Int32.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <manual_gap_msgs/CursorState.h>
+#include <manual_gap_msgs/ManualGapSample.h>
 
 namespace dynamic_gap
 {
@@ -146,34 +152,203 @@ namespace dynamic_gap
             void setReachedGlobalGoal(const bool & status) { reachedGlobalGoal_ = status; }
 
         private:
+            friend class PlannerTestAccess; /**< Unit-test access to internal state (test/) */
+
             struct ManualCandidate
             {
-                int display_id;
+                int display_id;  // number shown to the operator; -1 if not shown
                 int traj_flag;   // GAP, UNGAP, IDLING, 
-                int local_idx;
+                int local_idx;   // index into the tick's gap tubes / trajectories
+                int left_model_id;
+                int right_model_id;
+                bool feasible;   // non-empty trajectory
                 geometry_msgs::PoseArray path_odom_frame; // full trajectory path in odom frame
             };
 
             ros::Subscriber manualTrajSelectionSub_;
             ros::Publisher manualCandidateMarkerPub_;
-            ros::Subscriber rvizPublishPointSubsciber_; //for manuel_gap_selection click to point
+            ros::Subscriber cursorSub_; /**< Cursor of the RViz gap selection tool */
+            ros::Subscriber trajCreationPointSub_; //for manuel_traj_creation click to point
+
+            ros::Subscriber scenarioResetSub_; /**< Subscriber to episode resets of the task generator */
+            ros::Subscriber scenarioResetBeginSub_; /**< Subscriber to the start of episode resets */
+            ros::Publisher manualSamplePub_; /**< Per-tick imitation learning sample (manual mode) */
+
+            manual_gap_msgs::CursorState lastCursorMsg_; /**< Last cursor message, verbatim */
+            ros::WallTime cursorRxWall_; /**< Wall-clock receipt time of lastCursorMsg_ */
+            bool hasCursorMsg_ = false;
+            bool cursorTfOk_ = false; /**< The last picked cursor point could be transformed to odom */
+
+            int episodeId_ = -1; /**< Last /scenario_reset id */
+            int resetBeginId_ = -1; /**< Last /scenario_reset_begin id */
+            ros::WallTime lastResetWall_; /**< Wall-clock time of the last /scenario_reset */
+            const double resetWindow_ = 1.0; /**< Wall-clock seconds after a reset flagged in the sample */
+            uint32_t manualTickSeq_ = 0;
+
+            bool manualHoldStill_ = false; /**< Manual mode: command zero velocity this tick */
+            bool manualResetPending_ = false; /**< Manual mode: an episode reset to apply at the next tick */
+            int selectedLeftModelID_ = -1; /**< Identity of the cursor-selected gap */
+            int selectedRightModelID_ = -1;
+            double manualMaxBearingDiff_ = M_PI / 3.0; /**< Selectable gaps: terminal within this bearing (rad) of the cursor, from the robot */
+            double manualSwitchRatio_ = 0.7; /**< Another gap replaces the followed one only if its cursor distance is below this fraction */
 
             int selectedManualCandidateId_ = -1;
             bool manualSelectionMode_ = false;
+
+            bool learnedSelectionMode_ = false; /**< /learned_gap_scorer: the learned scorer selects the gap */
+            LearnedGapScorer learnedGapScorer_;
+            std::string learnedGapScorerError_; /**< why the scorer did not load */
+            bool sampleObservationFilled_ = false; /**< this tick's sample already has its robot state */
+
+            /**
+            * \brief Whether the operator (manual mode) or the learned scorer selects
+            * the gap instead of DynamicGap: the tick is recorded, and with nothing
+            * selected the robot holds still
+            */
+            bool externalSelectionMode() const { return manualSelectionMode_ || learnedSelectionMode_; }
             geometry_msgs::PointStamped cursorPosOdomFrame_;
             bool hasCursorPos_ = false;
+            geometry_msgs::PointStamped trajCreationPointOdomFrame_;
+            bool hasTrajCreationPoint_ = false;
+            bool isTrackingCreatedTraj_ = false;
+            ros::Duration createdTrajEstimatedTime_; /**< Estimated time to reach the clicked point */
 
             std::vector<ManualCandidate> currentManualCandidates_;
             boost::mutex manualSelectionMutex_;
 
             void manualTrajSelectionCB(const std_msgs::Int32::ConstPtr& msg);
 
-            //callback function for RViz publish point subscriber
-            void rvizPublishPointSubsciberCB(const geometry_msgs::PointStamped::ConstPtr& msg);
+            /**
+            * \brief Call back function for the cursor of the RViz gap selection tool
+            * \param msg cursor state
+            */
+            void cursorCB(const manual_gap_msgs::CursorState::ConstPtr& msg);
 
-            void publishManualCandidateMarkers(const std::vector<Trajectory>& gapTrajs,
-                                            const std::vector<Trajectory>& ungapTrajs,
-                                            const std::vector<Trajectory>& idlingTrajs);
+            /**
+            * \brief Whether the cursor can be used for selection: a point was
+            * received, the tool is active and still publishing
+            */
+            bool isCursorUsable();
+
+            void trajCreationPointCB(const geometry_msgs::PointStamped::ConstPtr& msg);
+
+            /**
+            * \brief Call back function for episode resets of the task generator
+            * \param msg id of the new episode
+            */
+            void scenarioResetCB(const std_msgs::Int16::ConstPtr& msg);
+
+            /**
+            * \brief Call back function for the start of episode resets
+            * \param msg id of the episode about to start
+            */
+            void scenarioResetBeginCB(const std_msgs::Int16::ConstPtr& msg);
+            bool tryHandleTrajCreationPoint(int & trajFlag);
+
+            /**
+            * \brief Draw the candidate numbers, highlighting the selected candidate
+            * \param selectedIdx index into currentManualCandidates_ of the selection, -1 if none
+            */
+            void publishManualCandidateMarkers(const int & selectedIdx);
+
+            /**
+            * \brief Manual mode: build the tick's candidate list, select from the
+            * cursor (or click-to-move) and record both in the sample
+            * \param trajFlag GAP if a trajectory was selected, NONE otherwise
+            * \param gapTubes gap tubes of this tick
+            * \param gapTrajs trajectory per gap tube (empty if infeasible)
+            * \param gapTrajPoseCosts pose-wise costs per gap trajectory (recorded, not used to select)
+            * \param gapTrajTerminalPoseCosts terminal cost per gap trajectory (recorded, not used to select)
+            * \param sample per-tick sample to fill
+            * \param chosenTraj trajectory to track (copied under the selection lock)
+            * \return index into currentManualCandidates_ of the selection, -1 if none
+            */
+            int selectManualTrajectory(int & trajFlag,
+                                       const std::vector<GapTube *> & gapTubes,
+                                       const std::vector<Trajectory> & gapTrajs,
+                                       const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                       const std::vector<float> & gapTrajTerminalPoseCosts,
+                                       manual_gap_msgs::ManualGapSample & sample,
+                                       Trajectory & chosenTraj);
+
+            /**
+            * \brief Manual and learned mode: after an episode reset, drop the previous
+            * episode's choice (caller holds manualSelectionMutex_)
+            */
+            void applyPendingSelectionReset();
+
+            /**
+            * \brief Manual and learned mode: no gap followed; the next selection starts
+            * a new tracked trajectory (caller holds manualSelectionMutex_)
+            */
+            void clearFollowedGap();
+
+            /**
+            * \brief Manual and learned mode: follow the selected gap's trajectory; a gap
+            * with other model ids than the one followed starts a new tracked trajectory
+            * (caller holds manualSelectionMutex_)
+            * \param selectedIdx index into gapTubes / gapTrajs of the selection
+            * \param leftModelID left model id of the selection
+            * \param rightModelID right model id of the selection
+            * \param trajFlag set to GAP
+            * \param chosenTraj set to the selected trajectory
+            */
+            void followSelectedGap(const int & selectedIdx,
+                                   const int & leftModelID,
+                                   const int & rightModelID,
+                                   const std::vector<GapTube *> & gapTubes,
+                                   const std::vector<Trajectory> & gapTrajs,
+                                   int & trajFlag,
+                                   Trajectory & chosenTraj);
+
+            /**
+            * \brief One candidate of the tick as recorded and as the learned scorer reads it
+            * \param i index into the tick's gap tubes / trajectories
+            * \param displayId number drawn next to the candidate, -1 if not shown
+            */
+            manual_gap_msgs::ManualGapCandidate buildCandidateMsg(const size_t & i,
+                                                                  const std::vector<GapTube *> & gapTubes,
+                                                                  const std::vector<Trajectory> & gapTrajs,
+                                                                  const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                                                  const std::vector<float> & gapTrajTerminalPoseCosts,
+                                                                  const int & displayId);
+
+            /**
+            * \brief The tick's scene edges in the sample: both points of every raw gap,
+            * in scan order, with their estimator states and neighbours (linkEdges)
+            */
+            void fillSampleEdges(const std::vector<Gap *> & rawGaps, manual_gap_msgs::ManualGapSample & sample);
+
+            /**
+            * \brief Learned mode: build the tick's candidates in the sample, score them
+            * with the learned scorer and follow the highest-scoring selectable gap
+            * (infinite DynamicGap cost included). A different gap is taken as soon as it
+            * scores higher. No usable choice: trajFlag NONE (the robot holds still)
+            * \return position in sample.candidates of the choice, -1 if none
+            */
+            int selectLearnedTrajectory(int & trajFlag,
+                                        const std::vector<GapTube *> & gapTubes,
+                                        const std::vector<Trajectory> & gapTrajs,
+                                        const std::vector<std::vector<float>> & gapTrajPoseCosts,
+                                        const std::vector<float> & gapTrajTerminalPoseCosts,
+                                        manual_gap_msgs::ManualGapSample & sample,
+                                        Trajectory & chosenTraj);
+
+            /**
+            * \brief Robot pose, velocity, goal and local waypoint of the sample, now
+            */
+            void fillSampleObservation(manual_gap_msgs::ManualGapSample & sample);
+
+            /**
+            * \brief Record the cursor state in the sample (caller holds manualSelectionMutex_)
+            * \param cursorUsable whether the cursor was usable for selection this tick
+            */
+            void fillSampleCursor(manual_gap_msgs::ManualGapSample & sample, const bool & cursorUsable);
+
+            /**
+            * \brief Fill the per-tick fields of the sample and publish it
+            */
+            void publishManualSample(manual_gap_msgs::ManualGapSample & sample);
 
             bool getHumanSelectedTrajectory(int& trajFlag,
                                             int& lowestCostTrajIdx,
@@ -181,11 +356,6 @@ namespace dynamic_gap
                                             const std::vector<Trajectory>& ungapTrajs,
                                             const std::vector<Trajectory>& idlingTrajs);
             
-            bool getCursorSelectedTrajectory(int& trajFlag,
-                                  int& lowestCostTrajIdx,
-                                  const std::vector<Trajectory>& gapTrajs,
-                                  const std::vector<Trajectory>& ungapTrajs,
-                                  const std::vector<Trajectory>& idlingTrajs);
 
             void attachUngapIDs(const std::vector<Gap *> & planningGaps,
                                         std::vector<Ungap *> & ungaps);
@@ -409,9 +579,12 @@ namespace dynamic_gap
 
             /**
             * \brief Function for deep copying simplified gaps
+            * \param scanCopy if given, receives a copy of the scan the gaps were computed from
+            * \param rawCopy if given, receives deep copies of the raw gaps of that scan
             * \return Deep copied simplified gaps
             */
-            std::vector<Gap *> deepCopyCurrentSimplifiedGaps();
+            std::vector<Gap *> deepCopyCurrentSimplifiedGaps(sensor_msgs::LaserScan * scanCopy = nullptr,
+                                                             std::vector<Gap *> * rawCopy = nullptr);
 
             /**
             * \brief Function for deep copying raw gaps

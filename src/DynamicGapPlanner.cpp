@@ -95,7 +95,7 @@ namespace dynamic_gap
         planner_.setParams(estParams_, ctrlParams_);
 
         Trajectory localTrajectory;
-        int trajFlag; 
+        int trajFlag = NONE;
         planner_.runPlanningLoop(localTrajectory, trajFlag);
 
         if (planner_.isGoalReached())
