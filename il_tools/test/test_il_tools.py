@@ -14,13 +14,15 @@ import unittest
 import rosbag
 import rospy
 import yaml
-from manual_gap_msgs.msg import ManualGapCandidate, ManualGapSample
+from geometry_msgs.msg import Pose
+from manual_gap_msgs.msg import ManualGapCandidate, ManualGapSample, ManualGapScanGaps, ManualGapTubeSegment
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import il_bags  # noqa: E402
 import il_dataset  # noqa: E402
 
 TOPIC = "/rto/manual_gap_sample"
+SCAN_GAPS_TOPIC = "/rto/manual_gap_scan_gaps"
 
 
 def candidate(idx, left, right, terminal, feasible=True, cursor=None):
@@ -32,6 +34,10 @@ def candidate(idx, left, right, terminal, feasible=True, cursor=None):
     if feasible:
         c.terminal_pose.position.x, c.terminal_pose.position.y = terminal
         c.terminal_pose.orientation.w = 1.0
+        c.path_full = [Pose(), c.terminal_pose]
+        c.path_time = [0.0, 1.0]
+        c.dg_pose_costs = [0.0, 0.0]
+        c.tube = [ManualGapTubeSegment()]
     c.cursor_dist = math.hypot(terminal[0] - cursor[0], terminal[1] - cursor[1]) if (cursor and feasible) else float("nan")
     c.cursor_bearing_diff = 0.0 if (cursor and feasible) else float("nan")
     return c
@@ -76,15 +82,25 @@ class SessionTestCase(unittest.TestCase):
         with open(os.path.join(self.dir, "params.yaml"), "w") as f:
             yaml.safe_dump({"task_generator_server": {"timeout": 60.0, "goal_radius": 1.0}}, f)
         with open(os.path.join(self.dir, "episodes.csv"), "w") as f:
-            f.write("event,episode,wall_time,sim_time,start,goal\nreset,0,0,0,,\nreset,1,0,0,,\n")
+            f.write("event,episode,wall_time,sim_time,start,goal,timeout,stage,stage_index,scenario_file,seed\n"
+                    "reset,0,0,0,,,60,s0,0,a.json,1\nreset,1,0,0,,,60,s0,0,a.json,1\n")
 
     def tearDown(self):
         shutil.rmtree(self.dir)
 
-    def write(self, samples, name="session_0.bag"):
+    def write(self, samples, name="session_0.bag", scan_gaps=True):
         with rosbag.Bag(os.path.join(self.dir, name), "w") as bag:
             for s in samples:
                 bag.write(TOPIC, s, s.header.stamp)
+            if scan_gaps and samples:
+                # 25 Hz over the samples' span, as the planner publishes once per scan
+                t0, t1 = samples[0].header.stamp.to_sec(), samples[-1].header.stamp.to_sec()
+                for k in range(int((t1 - t0) * 25) + 1):
+                    m = ManualGapScanGaps()
+                    m.schema_version = m.SCHEMA_VERSION
+                    m.header.stamp = rospy.Time.from_sec(t0 + k / 25.0)
+                    m.scan_seq = k
+                    bag.write(SCAN_GAPS_TOPIC, m, m.header.stamp)
 
     def good_samples(self):
         samples = [sample(i, 0.1 * i, 0) for i in range(20)]
@@ -99,6 +115,11 @@ class CheckTest(SessionTestCase):
     def checks(self):
         checks, report = il_bags.check_session(self.dir)
         return {name: ok for name, ok, _ in checks}, report
+
+    def test_missing_scan_gaps_fail(self):
+        self.write(self.good_samples(), scan_gaps=False)
+        checks, _ = self.checks()
+        self.assertFalse(checks["scan gaps recorded"])
 
     def test_good_session_passes(self):
         self.write(self.good_samples())
