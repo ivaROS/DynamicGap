@@ -200,8 +200,13 @@ def rule_selection(sample, followed, max_bearing, switch_ratio):
     for i, c in enumerate(sample.candidates):
         if not c.feasible:
             continue
-        p = c.terminal_pose.position
-        diff = cursor_bearing - math.atan2(p.y - rbt.y, p.x - rbt.x)
+        # the planner's own bearing difference when recorded: robot_pose_odom
+        # may be updated after selection, and for a terminal point next to the
+        # robot a millimetre of that moves the bearing by up to 180 degrees
+        diff = getattr(c, "cursor_bearing_diff", math.nan)
+        if not math.isfinite(diff):
+            p = c.terminal_pose.position
+            diff = cursor_bearing - math.atan2(p.y - rbt.y, p.x - rbt.x)
         if abs(math.atan2(math.sin(diff), math.cos(diff))) <= max_bearing:
             selectable.append(i)
     if not selectable:
