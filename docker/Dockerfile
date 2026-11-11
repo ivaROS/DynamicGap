@@ -69,8 +69,9 @@ RUN curl -fsSL -o /tmp/rclone.deb "https://downloads.rclone.org/${RCLONE_VERSION
     && dpkg -i /tmp/rclone.deb && rm /tmp/rclone.deb
 
 COPY bashrc_il /root/.bashrc_il
-COPY run_il_dataset.sh /root/run_il_dataset.sh
 COPY il_check_install.sh /usr/local/bin/il_check_install
-RUN chmod +x /root/run_il_dataset.sh /usr/local/bin/il_check_install && echo 'source /root/.bashrc_il' >> /root/.bashrc
+# a link into the repo, so `git pull` updates the collection script too
+RUN ln -s /root/arena_ws/src/planners/dynamic_gap/docker/run_il_dataset.sh /root/run_il_dataset.sh \
+    && chmod +x /usr/local/bin/il_check_install && echo 'source /root/.bashrc_il' >> /root/.bashrc
 
 CMD ["bash"]

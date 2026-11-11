@@ -2,11 +2,11 @@
 """Copy recorded IL sessions to the shared Google Drive folder, labelled with the operator.
 
 Usage: il_upload_sessions [SESSION_DIR ...] [--remote REMOTE] [--operator NAME] [--dry-run]
-  no SESSION_DIR: every session in ~/il_data/il_gap_selection without on_drive.txt
+  no SESSION_DIR: every session in ~/il_data/il_gap_selection without on_drive.txt or drive_skipped.txt
   REMOTE   rclone destination, default $IL_DRIVE_REMOTE (ildrive: = the ilData folder)
   NAME     default $IL_OPERATOR, else the operator in the session's params.yaml
 A session lands in REMOTE/NAME/il_gap_selection/<session>/. Nothing local is deleted: the bags stay.
-Sessions still recording (a .bag.active file) are skipped. run_il_dataset.sh runs this after each run.
+Sessions still recording (a .bag.active file) are skipped. run_il_dataset.sh runs this for each session you accept after a run.
 """
 
 import argparse

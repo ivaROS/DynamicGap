@@ -13,7 +13,7 @@ for students on any PC. Install steps for students (Windows): the *Imitation Lea
 | other repos in `src` | pinned to the lab PC's commits (`il.repos`) |
 | `/root/il_data/{datasets,models}` | the IL datasets and trained models, copied from the lab PC's `~/il_data` at build time |
 | `/root/il_data/il_gap_selection` | sessions; students mount the volume `il_sessions` here |
-| `/root/run_il_dataset.sh` | collection run (`run_il_dataset.sh`), uploads after the run |
+| `/root/run_il_dataset.sh` | collection run; a link to the repo's `docker/run_il_dataset.sh`, so `git pull` updates it. After the run it checks each session and asks whether to upload it |
 | `il_check_install` | checks display, OpenGL, branches, build, data, git, Drive |
 
 ROS Noetic desktop-full, the lab PC's Python versions, CPU torch 1.12.1, rclone 1.68.2. RViz uses the
