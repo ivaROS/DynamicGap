@@ -2,7 +2,7 @@
 # Check the IL container: display, OpenGL, repositories and branches, build, data, Drive upload.
 # Usage: il_check_install      (prints OK / WARN / FAIL per line)
 ws=/root/arena_ws
-[ -n "${ROS_DISTRO:-}" ] || source /root/.bashrc_il  # e.g. run through docker exec
+source /root/.bashrc_il  # the workspace, also when run through docker exec (the base image sets ROS_DISTRO)
 ok()   { printf '  OK    %s\n' "$*"; }
 warn() { printf '  WARN  %s\n' "$*"; }
 fail() { printf '  FAIL  %s\n' "$*"; bad=1; }
