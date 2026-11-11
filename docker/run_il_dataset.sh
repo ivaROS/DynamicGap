@@ -13,6 +13,8 @@
 # it. The local copy always stays.
 # One script for the container (defaults below) and the lab PC (~/run_il_dataset.sh there sets
 # IL_SETUP, IL_DATA_ROOT and IL_RVIZ_PREFIX and runs this file).
+# IL_SUITE: suite file, default il_dataset_small_v1.yaml; il_dataset_small_v1_part<1-4>.yaml run
+# stages 1-4, 5-8, 9-12 and 13-14 of it with the same seeds.
 # IL_LAUNCH_ARGS: extra start_trials.launch arguments, e.g. "ped_vmax:=0.8" or "il_goal_cursor:=true"
 # (an automatic operator that holds the cursor toward the goal: for testing, not for the dataset).
 case "${1:-}" in
@@ -42,7 +44,7 @@ extra+=("${more[@]}")
 roslaunch arena_bringup start_trials.launch \
     man_gap:=true \
     tm_modules:=benchmark \
-    benchmark_suite:=il_dataset_small_v1.yaml \
+    benchmark_suite:="${IL_SUITE:-il_dataset_small_v1.yaml}" \
     record_il:=true \
     il_data_root:="$IL_DATA_ROOT" \
     il_operator:="$1" \
