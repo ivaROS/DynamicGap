@@ -73,5 +73,4 @@ COPY run_il_dataset.sh /root/run_il_dataset.sh
 COPY il_check_install.sh /usr/local/bin/il_check_install
 RUN chmod +x /root/run_il_dataset.sh /usr/local/bin/il_check_install && echo 'source /root/.bashrc_il' >> /root/.bashrc
 
-WORKDIR /root/arena_ws
 CMD ["bash"]

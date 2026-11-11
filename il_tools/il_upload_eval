@@ -31,10 +31,15 @@ def main():
         parser.error("no remote: pass --remote ildrive: or set IL_DRIVE_REMOTE")
     if not args.operator:
         parser.error("no operator: pass --operator NAME or set IL_OPERATOR")
-    failed = False
+    try:
+        il_drive.check_operator(args.operator)
+    except ValueError as e:
+        parser.error(str(e))
     for d in args.dirs:
         if not os.path.isdir(d):
-            sys.exit("not a directory: {}".format(d))
+            parser.error("not a directory: {}".format(d))
+    failed = False
+    for d in args.dirs:
         failed |= il_drive.upload_eval(d, args.remote, args.operator, args.keep_videos, args.dry_run) < 0
     sys.exit(1 if failed else 0)
 

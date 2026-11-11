@@ -5,7 +5,7 @@ Usage: il_upload_sessions [SESSION_DIR ...] [--remote REMOTE] [--operator NAME] 
   no SESSION_DIR: every session in ~/il_data/il_gap_selection without on_drive.txt
   REMOTE   rclone destination, default $IL_DRIVE_REMOTE (ildrive: = the ilData folder)
   NAME     default $IL_OPERATOR, else the operator in the session's params.yaml
-A session lands in REMOTE/sessions/NAME/<session>/. Nothing local is deleted: the bags stay.
+A session lands in REMOTE/NAME/il_gap_selection/<session>/. Nothing local is deleted: the bags stay.
 Sessions still recording (a .bag.active file) are skipped. run_il_dataset.sh runs this after each run.
 """
 
@@ -25,14 +25,20 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if not args.remote:
-        parser.error("no remote: pass --remote gdrive:IL_data or set IL_DRIVE_REMOTE")
+        parser.error("no remote: pass --remote ildrive: or set IL_DRIVE_REMOTE")
+    if args.operator:
+        try:
+            il_drive.check_operator(args.operator)
+        except ValueError as e:
+            parser.error(str(e))
+    for s in args.sessions:
+        if not os.path.isdir(s):
+            parser.error("not a directory: {}".format(s))
     sessions = args.sessions or il_drive.pending_sessions(os.path.join(il_drive.data_root(), "il_gap_selection"))
     if not sessions:
         print("nothing to upload")
     failed = False
     for s in sessions:
-        if not os.path.isdir(s):
-            sys.exit("not a directory: {}".format(s))
         failed |= il_drive.upload_session(s, args.remote, args.operator, args.dry_run) < 0
     sys.exit(1 if failed else 0)
 
