@@ -115,6 +115,14 @@ class UploadTest(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(s, "session_0.bag")))  # bags are never deleted
         self.assertEqual(il_drive.pending_sessions(os.path.dirname(s)), [])
 
+    def test_declined_session_not_pending_but_uploadable(self):
+        s = os.path.join(self.root, "il_gap_selection", "s3")
+        touch(os.path.join(s, "session_0.bag"), b"bag")
+        touch(os.path.join(s, il_drive.SKIPPED), b"declined\n")
+        self.assertEqual(il_drive.pending_sessions(os.path.dirname(s)), [])
+        self.assertEqual(il_drive.upload_session(s, self.drive + "/", "kim", log=self.log), 1)  # named: still sent
+        self.assertTrue(os.path.exists(os.path.join(self.drive, "kim", "il_gap_selection", "s3", "session_0.bag")))
+
     def test_operator_argument_wins(self):
         s = os.path.join(self.root, "il_gap_selection", "s2")
         touch(os.path.join(s, "session_0.bag"))

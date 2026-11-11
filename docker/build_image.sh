@@ -11,7 +11,7 @@ data="${IL_DATA:-/home/abdel/il_data}"
 
 ctx="$(mktemp -d)"
 trap 'rm -rf "$ctx"' EXIT
-cp "$here"/{Dockerfile,il.repos,bashrc_il,run_il_dataset.sh,il_check_install.sh} "$ctx"/
+cp "$here"/{Dockerfile,il.repos,bashrc_il,il_check_install.sh} "$ctx"/
 mkdir -p "$ctx/il_data"
 for d in datasets models; do
     [ -d "$data/$d" ] || { echo "missing $data/$d" >&2; exit 1; }

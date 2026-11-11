@@ -48,10 +48,9 @@ roslaunch arena_bringup start_trials.launch man_gap:=true \
 ```
 
 **Designed dataset:** `~/run_il_dataset.sh <operator> [session]` (copy in
-`.claude/skills/monitor-il-run/run_il_dataset.sh.example`) runs the
-`il_dataset_small_v1.yaml` suite with data root `/home/abdel/il_data` and RViz under
-gdb. It behaves as the container's script: it follows the relaunch (Ctrl+C stops the
-whole run) and uploads new sessions to the Drive when `IL_DRIVE_REMOTE` is set. The pilot script `~/run_il_pilot.sh [session]`
+`.claude/skills/monitor-il-run/run_il_dataset.sh.example`) runs the container's script
+`docker/run_il_dataset.sh` with data root `/home/abdel/il_data`, the overlay and RViz under
+gdb (see the container paragraph below). The pilot script `~/run_il_pilot.sh [session]`
 (optional `PED_VMAX=<m/s>`) does the same with the `50ped_daniel.yaml` suite
 (preliminary data). With a benchmark the first launch relaunches itself to load
 the suite's map and records into `<contest>_<date_time>_<first stage>`; the
@@ -65,8 +64,9 @@ session. To run only some stages, comment the others out in the suite file.
 workspace `/root/arena_ws`, no overlay; after C++ changes `cd ~/arena_ws && catkin build dynamic_gap`.
 `~/run_il_dataset.sh <operator> [session]` runs the designed-dataset suite with data root
 `/root/il_data`. The benchmark relaunch runs detached from the terminal; the script follows it, so
-Ctrl+C in its terminal stops the run, and once the bag is closed it copies the new sessions to the
-shared Drive folder (`il_upload_sessions`, below) if `IL_DRIVE_REMOTE` is set.
+Ctrl+C in its terminal stops the run. Once the bag is closed it runs `il_check_session` on each
+session of this run and, if `IL_DRIVE_REMOTE` is set, asks whether to upload it (`il_upload_sessions`,
+below; Enter = yes). A declined session stays local only and gets `drive_skipped.txt`.
 
 If move_base_flex dies (`[rto/move_base_flex-5] process has died`, exit -11;
 a crash inside move_base_flex, not the planner), the robot keeps the last
@@ -136,7 +136,7 @@ il_tools/il_build_dataset --out <dataset_dir> --lag <s> \
 ```
 
 Upload: `il_tools/il_upload_sessions [sessions...]` copies sessions (default: every one in
-`<data_root>/il_gap_selection` not uploaded yet) to the shared Google Drive folder
+`<data_root>/il_gap_selection` without `on_drive.txt` or `drive_skipped.txt`) to the shared Google Drive folder
 `Research/ImitationLearning/ilData/<operator>/il_gap_selection/<session>/` (rclone remote
 `ildrive:`, `IL_DRIVE_REMOTE`); the local copy stays and `on_drive.txt` records the upload.
 Folders still recording or without a bag (the pre-relaunch folder) are skipped.

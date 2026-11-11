@@ -19,6 +19,7 @@ import sys
 import yaml
 
 MARKER = "on_drive.txt"
+SKIPPED = "drive_skipped.txt"  # declined after the run (run_il_dataset.sh): not uploaded unless named
 
 
 def data_root():
@@ -139,12 +140,12 @@ def upload_session(session_dir, remote, operator=None, dry_run=False, log=sys.st
 
 
 def pending_sessions(sessions_root):
-    """Session folders under sessions_root not uploaded yet (no marker file)."""
+    """Session folders under sessions_root not uploaded yet and not declined (neither marker file)."""
     if not os.path.isdir(sessions_root):
         return []
     out = []
     for name in sorted(os.listdir(sessions_root)):
         d = os.path.join(sessions_root, name)
-        if os.path.isdir(d) and not os.path.exists(os.path.join(d, MARKER)):
+        if os.path.isdir(d) and not any(os.path.exists(os.path.join(d, m)) for m in (MARKER, SKIPPED)):
             out.append(d)
     return out

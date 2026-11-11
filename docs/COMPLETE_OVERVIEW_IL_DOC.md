@@ -470,8 +470,8 @@ roslaunch arena_bringup start_trials.launch man_gap:=true \
 
 **Designed dataset** (`~/run_il_dataset.sh <operator> [session]`): the same with
 `tm_modules:=benchmark benchmark_suite:=il_dataset_small_v1.yaml`, data root
-`/home/abdel/il_data`, RViz under gdb; follows the relaunch and uploads new sessions to
-the Drive at the end, as the container's script does.
+`/home/abdel/il_data`, RViz under gdb; it runs the container's script (below), so it follows the
+relaunch and asks per session whether to upload it.
 
 **Pilot run** (`~/run_il_pilot.sh [session]`, optional `PED_VMAX=<m/s>`; its
 sessions are preliminary): the same with the `50ped_daniel.yaml` suite.
@@ -480,8 +480,9 @@ sessions are preliminary): the same with the `50ped_daniel.yaml` suite.
 workspace `/root/arena_ws`, no overlay; after C++ changes `cd ~/arena_ws && catkin build dynamic_gap`.
 `~/run_il_dataset.sh <operator> [session]` runs the designed-dataset suite with data root
 `/root/il_data`. The benchmark relaunch runs detached from the terminal; the script follows it, so
-Ctrl+C in its terminal stops the run, and once the bag is closed it copies the new sessions to the
-shared Drive folder (`il_upload_sessions`: Drive `ilData/<operator>/il_gap_selection/<session>/`, local copy kept) if `IL_DRIVE_REMOTE` is set.
+Ctrl+C in its terminal stops the run. Once the bag is closed it checks each session of this run
+(`il_check_session`) and, if `IL_DRIVE_REMOTE` is set, asks whether to upload it (`il_upload_sessions`:
+Drive `ilData/<operator>/il_gap_selection/<session>/`, local copy kept; declined: `drive_skipped.txt`).
 
  The 50ped_daniel suite uses the
 `gru_learn` map with a fixed start and goal per scenario, which avoids the
