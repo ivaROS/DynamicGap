@@ -67,6 +67,16 @@ def videos(local_dir):
     return files_below(local_dir, ".mp4")
 
 
+def has_episodes(session_dir):
+    """True if the session's episodes.csv has at least one row: an episode began. The folder a
+    benchmark writes before it relaunches itself can hold a short bag but no episode."""
+    try:
+        with open(os.path.join(session_dir, "episodes.csv")) as f:
+            return sum(1 for line in f if line.strip()) > 1  # the header + a row
+    except OSError:
+        return False
+
+
 def recording(local_dir):
     """True while rosbag is still writing (a .bag.active file anywhere below)."""
     return bool(files_below(local_dir, ".bag.active"))
@@ -124,6 +134,9 @@ def upload_session(session_dir, remote, operator=None, dry_run=False, log=sys.st
     if not files_below(session_dir, ".bag"):
         # e.g. the short folder a benchmark writes before it relaunches itself: no driving in it
         print("{}: no bag (nothing recorded), skipped".format(session_dir), file=log)
+        return 0
+    if not has_episodes(session_dir):
+        print("{}: no episode in episodes.csv (nothing driven), skipped".format(session_dir), file=log)
         return 0
     operator = operator or session_operator(session_dir)
     if not operator:

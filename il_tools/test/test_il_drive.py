@@ -13,6 +13,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import il_drive  # noqa: E402
 
 
+EPISODES = b"event,episode,wall_time,sim_time,start,goal,timeout\nbegin,0,1.0,1.0,,,120.0\n"
+
+
+def session(path):
+    """A recorded session folder: a bag and one episode."""
+    touch(os.path.join(path, "session_0.bag"), b"bag")
+    touch(os.path.join(path, "episodes.csv"), EPISODES)
+
+
 def touch(path, data=b"x"):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
@@ -106,7 +115,7 @@ class UploadTest(unittest.TestCase):
 
     def test_session_copied_and_kept(self):
         s = os.path.join(self.root, "il_gap_selection", "s1")
-        touch(os.path.join(s, "session_0.bag"), b"bag")
+        session(s)
         with open(os.path.join(s, "params.yaml"), "w") as f:
             f.write("operator: kim\n")
         self.assertEqual(il_drive.pending_sessions(os.path.dirname(s)), [s])
@@ -117,7 +126,7 @@ class UploadTest(unittest.TestCase):
 
     def test_declined_session_not_pending_but_uploadable(self):
         s = os.path.join(self.root, "il_gap_selection", "s3")
-        touch(os.path.join(s, "session_0.bag"), b"bag")
+        session(s)
         touch(os.path.join(s, il_drive.SKIPPED), b"declined\n")
         self.assertEqual(il_drive.pending_sessions(os.path.dirname(s)), [])
         self.assertEqual(il_drive.upload_session(s, self.drive + "/", "kim", log=self.log), 1)  # named: still sent
@@ -125,7 +134,7 @@ class UploadTest(unittest.TestCase):
 
     def test_operator_argument_wins(self):
         s = os.path.join(self.root, "il_gap_selection", "s2")
-        touch(os.path.join(s, "session_0.bag"))
+        session(s)
         with open(os.path.join(s, "params.yaml"), "w") as f:
             f.write("operator: kim\n")
         il_drive.upload_session(s, self.drive + "/", "ewan", log=self.log)
@@ -144,10 +153,20 @@ class UploadTest(unittest.TestCase):
         self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
         self.assertEqual(os.listdir(self.drive), [])
 
+    def test_session_without_episode_skipped(self):
+        # the folder written before the benchmark relaunch: sometimes a short bag, never an episode
+        s = os.path.join(self.root, "il_gap_selection", "s6")
+        touch(os.path.join(s, "session_0.bag"), b"bag")
+        touch(os.path.join(s, "params.yaml"), b"operator: kim\n")
+        touch(os.path.join(s, "episodes.csv"), EPISODES.split(b"\n")[0] + b"\n")
+        self.assertFalse(il_drive.has_episodes(s))
+        self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
+        self.assertEqual(os.listdir(self.drive), [])
+
     def test_unusable_params_operator_skipped(self):
         for i, text in enumerate((b"- a list\n", b"operator: a/b\n", b"operator: ..\n", b"operator: 42\n", b"{\n")):
             s = os.path.join(self.root, "il_gap_selection", "bad{}".format(i))
-            touch(os.path.join(s, "session_0.bag"))
+            session(s)
             touch(os.path.join(s, "params.yaml"), text)
             self.assertIsNone(il_drive.session_operator(s), text)
             self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
@@ -165,7 +184,7 @@ class UploadTest(unittest.TestCase):
 
     def test_no_operator_skipped(self):
         s = os.path.join(self.root, "il_gap_selection", "s4")
-        touch(os.path.join(s, "session_0.bag"))
+        session(s)
         self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
         self.assertEqual(os.listdir(self.drive), [])
 
