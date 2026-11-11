@@ -39,8 +39,20 @@ def candidate(idx, left, right, terminal, feasible=True, cursor=None):
         c.dg_pose_costs = [0.0, 0.0]
         c.tube = [ManualGapTubeSegment()]
     c.cursor_dist = math.hypot(terminal[0] - cursor[0], terminal[1] - cursor[1]) if (cursor and feasible) else float("nan")
-    c.cursor_bearing_diff = 0.0 if (cursor and feasible) else float("nan")
+    c.cursor_bearing_diff = 0.0 if (cursor and feasible) else float("nan")  # set by planner_bearings
     return c
+
+
+def planner_bearings(s):
+    """cursor_bearing_diff as the planner computes it at selection, from the
+    sample's robot pose and cursor (tests move the cursor after building)."""
+    rbt = s.robot_pose_odom.position
+    cursor_bearing = math.atan2(s.cursor_odom.y - rbt.y, s.cursor_odom.x - rbt.x)
+    for c in s.candidates:
+        if c.feasible and math.isfinite(c.cursor_bearing_diff):
+            p = c.terminal_pose.position
+            d = cursor_bearing - math.atan2(p.y - rbt.y, p.x - rbt.x)
+            c.cursor_bearing_diff = math.atan2(math.sin(d), math.cos(d))
 
 
 def sample(seq, t, episode, cursor=(3.0, 0.0), gaps=((1, 2, (3.0, 1.0)), (3, 4, (3.0, -1.0))),
@@ -88,9 +100,11 @@ class SessionTestCase(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.dir)
 
-    def write(self, samples, name="session_0.bag", scan_gaps=True):
+    def write(self, samples, name="session_0.bag", scan_gaps=True, bearings=True):
         with rosbag.Bag(os.path.join(self.dir, name), "w") as bag:
             for s in samples:
+                if bearings:
+                    planner_bearings(s)
                 bag.write(TOPIC, s, s.header.stamp)
             if scan_gaps and samples:
                 # 25 Hz over the samples' span, as the planner publishes once per scan
@@ -285,6 +299,21 @@ class CheckTest(SessionTestCase):
         self.follow(samples[6], 0)  # a gap pointing away from the cursor
         self.write(samples)
         self.assertFalse(self.checks()[0]["selection reproducible"])
+
+    def test_recorded_bearing_used(self):
+        # a candidate ending at the robot: its bearing depends on millimetres of
+        # robot pose, which may be updated after selection, so the replay uses the
+        # bearing difference the planner recorded
+        self.use_selection_rule()
+        samples = self.good_samples()
+        s = samples[6]
+        s.cursor_odom.x, s.cursor_odom.y = -3.0, 0.0  # nothing else within 60 degrees
+        planner_bearings(s)
+        s.candidates[0].terminal_pose.position.x, s.candidates[0].terminal_pose.position.y = 0.001, 0.0
+        s.candidates[0].cursor_bearing_diff = math.radians(-25.0)  # what the planner saw
+        self.follow(s, 0)
+        self.write(samples, bearings=False)
+        self.assertTrue(self.checks()[0]["selection reproducible"])
 
     def test_followed_gap_unknown_after_tick_hole(self):
         self.use_selection_rule()

@@ -73,3 +73,12 @@ Propagated future scans (`DynamicScanPropagator`) and the planner's internal
 costmaps; neither is an input the gap scorer or the GRU reads. Pedestrians step on
 wall time while the robot runs on sim time, so their speed relative to the robot
 varies with the real-time factor (readable from `episodes.csv` wall vs. sim time).
+
+## Follow-up (2026-11-11, after merge)
+
+A second live run on the merged code failed "selection reproducible" on 1 of 464
+ticks: a candidate ending 1 cm from the robot, whose bearing the replay recomputed
+from `robot_pose_odom` as 175° while the planner had seen −25° (the pose is
+updated after selection). The replay now uses the recorded `cursor_bearing_diff`
+(present since 2026-10-21) and recomputes only when it is NaN. All 11 checks pass
+on both test runs.
