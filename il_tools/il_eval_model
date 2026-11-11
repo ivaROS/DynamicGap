@@ -14,8 +14,9 @@ Usage (workspace sourced; ROS_MASTER_URI sets the port, e.g. http://localhost:11
   il_eval_model --report-only --out DIR   (recompute metrics and videos of earlier runs)
 
 Writes DIR/<model>/{sessions/, screen.mp4, videos/epNN_<stage>.mp4, metrics.csv, run.yaml,
-launch.log} and DIR/summary.csv (one row per model). A model is a run folder of il_train
-(gap_scorer.json in it) or the gap_scorer.json itself. Only processes this driver started
+launch.log} and DIR/summary.csv (one row per model). With IL_DRIVE_REMOTE set, each model's folder
+is then uploaded to the Drive and its videos deleted locally (il_upload_eval; --keep-videos keeps
+them). A model is a run folder of il_train (gap_scorer.json in it) or the gap_scorer.json itself. Only processes this driver started
 are watched and stopped; it refuses a port that is in use.
 """
 
@@ -31,6 +32,7 @@ import rospkg
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import il_drive  # noqa: E402
 import il_eval  # noqa: E402
 from il_launch import (LAUNCH_PATTERN, PLANNER_PATTERN, benchmark_runs, launch_env,  # noqa: E402
                        master_port, port_in_use, running, stop_launch)
@@ -190,6 +192,8 @@ def main():
     parser.add_argument("--suite", default="il_eval_heldout_v1.yaml", help="file in arena_bringup/configs/benchmark/suites")
     parser.add_argument("--out", required=True)
     parser.add_argument("--report-only", action="store_true", help="only recompute metrics and videos of DIR's runs")
+    parser.add_argument("--keep-videos", action="store_true",
+                        help="when IL_DRIVE_REMOTE is set: upload the run but keep its videos local (il_upload_eval)")
     args = parser.parse_args()
     suites_dir = os.path.join(rospkg.RosPack().get_path("arena_bringup"), "configs", "benchmark", "suites")
     with open(os.path.join(suites_dir, args.suite)) as f:
@@ -222,6 +226,17 @@ def main():
     for name, scorer in models:
         run_model(name, scorer, args.suite, stages, os.path.join(args.out, name), sys.stdout)
     report(args.out, [name for name, _ in models], stages)
+    remote, operator = os.environ.get("IL_DRIVE_REMOTE"), os.environ.get("IL_OPERATOR")
+    if remote:
+        # after report(): the episode videos are cut from screen.mp4, so it can go only now
+        print()
+        if not operator:
+            print("IL_OPERATOR is not set: nothing uploaded (il_upload_eval --operator NAME {})".format(args.out))
+            return
+        for name, _ in models:
+            d = os.path.join(args.out, name)
+            if il_drive.upload_eval(d, remote, operator, keep_videos=args.keep_videos) < 0:
+                print("upload of {} failed, its videos stay local; retry: il_upload_eval {}".format(name, d))
 
 
 if __name__ == "__main__":
