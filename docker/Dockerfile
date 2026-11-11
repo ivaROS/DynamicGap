@@ -74,4 +74,6 @@ COPY il_check_install.sh /usr/local/bin/il_check_install
 RUN ln -s /root/arena_ws/src/planners/dynamic_gap/docker/run_il_dataset.sh /root/run_il_dataset.sh \
     && chmod +x /usr/local/bin/il_check_install && echo 'source /root/.bashrc_il' >> /root/.bashrc
 
+LABEL org.opencontainers.image.source=https://github.com/ivaROS/DynamicGap
+LABEL org.opencontainers.image.description="Imitation-learning workspace (Arena-Rosnav + DynamicGap, ROS Noetic) with the IL dataset and models"
 CMD ["bash"]

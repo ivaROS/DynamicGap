@@ -1,6 +1,6 @@
 # IL Docker image
 
-`ghcr.io/udog-illinois/il-arena` (public): the imitation-learning workspace of the lab PC, built,
+`ghcr.io/ivaros/il-arena` (public, package of the ivaROS org, linked to ivaROS/DynamicGap): the imitation-learning workspace of the lab PC, built,
 for students on any PC. Install steps for students (Windows): the *Imitation Learning on Docker
 (Windows) — Install Guide*. This file is for whoever maintains the image.
 
@@ -27,15 +27,15 @@ dataset change, or so that new students start from newer code.
 ## Build, test, publish (lab PC)
 
 ```
-docker/build_image.sh                      # ghcr.io/udog-illinois/il-arena:latest
+docker/build_image.sh                      # ghcr.io/ivaros/il-arena:latest
 docker run --rm --gpus all -e DISPLAY=:0 -v /tmp/.X11-unix:/tmp/.X11-unix \
-    ghcr.io/udog-illinois/il-arena:latest il_check_install          # needs xhost +SI:localuser:root
+    ghcr.io/ivaros/il-arena:latest il_check_install          # needs xhost +SI:localuser:root
 docker run --rm -e DISPLAY=:0 -v /tmp/.X11-unix:/tmp/.X11-unix \
-    ghcr.io/udog-illinois/il-arena:latest il_check_install          # software OpenGL, as on Windows
-docker tag ghcr.io/udog-illinois/il-arena:latest ghcr.io/udog-illinois/il-arena:$(date +%F)
-gh auth token | docker login ghcr.io -u Udog-ILLINOIS --password-stdin   # token needs write:packages
-docker push ghcr.io/udog-illinois/il-arena:latest
-docker push ghcr.io/udog-illinois/il-arena:$(date +%F)
+    ghcr.io/ivaros/il-arena:latest il_check_install          # software OpenGL, as on Windows
+docker tag ghcr.io/ivaros/il-arena:latest ghcr.io/ivaros/il-arena:$(date +%F)
+gh auth token | docker login ghcr.io -u <your GitHub user> --password-stdin   # token needs write:packages; ivaROS member
+docker push ghcr.io/ivaros/il-arena:latest
+docker push ghcr.io/ivaros/il-arena:$(date +%F)
 ```
 
 `build_image.sh` clones the four IL repos from ivaROS (`IL_SOURCE=https://github.com/<org>` for a
