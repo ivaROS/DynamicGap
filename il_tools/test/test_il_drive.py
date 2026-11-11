@@ -4,6 +4,7 @@
 import io
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -30,9 +31,22 @@ class RemoteDirTest(unittest.TestCase):
         self.assertEqual(il_drive.remote_dir("ildrive:", "ewan", "/elsewhere/run7", root="/d"), "ildrive:ewan/run7")
 
     def test_operator_must_be_plain(self):
-        for bad in ("", None, "a/b"):
+        for bad in ("", None, "a/b", ".", ".."):
             with self.assertRaises(ValueError):
                 il_drive.remote_dir("ildrive:", bad, "/d/x", root="/d")
+        self.assertEqual(il_drive.remote_dir("ildrive:", "Ewan M", "/d/x", root="/d"), "ildrive:Ewan M/x")
+
+    def test_symlinked_root_and_trailing_slash(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            root = os.path.join(tmp, "il_data")
+            os.makedirs(os.path.join(root, "evals", "x"))
+            os.symlink(root, os.path.join(tmp, "link"))
+            for d in (os.path.join(tmp, "link", "evals", "x"), os.path.join(root, "evals", "x") + "/"):
+                self.assertEqual(il_drive.remote_dir("ildrive:", "ewan", d, root=os.path.join(tmp, "link")),
+                                 "ildrive:ewan/evals/x")
+        finally:
+            shutil.rmtree(tmp)
 
 
 @unittest.skipIf(shutil.which("rclone") is None, "rclone not installed")
@@ -50,13 +64,13 @@ class UploadTest(unittest.TestCase):
         os.environ.pop("IL_DATA_ROOT", None)
         shutil.rmtree(self.tmp)
 
-    def make_eval(self):
-        run = os.path.join(self.root, "evals", "e1", "full")
+    def make_eval(self, name="e1"):
+        run = os.path.join(self.root, "evals", name, "full")
         touch(os.path.join(run, "screen.mp4"), b"screen")
         touch(os.path.join(run, "videos", "ep01_a.mp4"), b"ep1")
         touch(os.path.join(run, "metrics.csv"), b"m")
         touch(os.path.join(run, "sessions", "s", "session_0.bag"), b"bag")
-        return run, os.path.join(self.drive, "ewan", "evals", "e1", "full")
+        return run, os.path.join(self.drive, "ewan", "evals", name, "full")
 
     def test_eval_uploaded_together_videos_deleted(self):
         run, dest = self.make_eval()
@@ -71,6 +85,13 @@ class UploadTest(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(dest, il_drive.MARKER)))
         with open(os.path.join(run, il_drive.MARKER)) as f:
             self.assertIn("2 videos deleted locally", f.read())
+
+    def test_eval_paths_with_spaces(self):
+        run, dest = self.make_eval("eval 2 (two)")
+        self.assertEqual(il_drive.upload_eval(run, self.drive + "/", "Ewan M", log=self.log), 2)
+        dest = dest.replace("/ewan/", "/Ewan M/")
+        self.assertTrue(os.path.exists(os.path.join(dest, "videos", "ep01_a.mp4")))
+        self.assertEqual(il_drive.videos(run), [])
 
     def test_eval_keep_videos(self):
         run, dest = self.make_eval()
@@ -113,6 +134,25 @@ class UploadTest(unittest.TestCase):
         touch(os.path.join(s, "params.yaml"), b"operator: kim\n")
         touch(os.path.join(s, "episodes.csv"))
         self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
+        self.assertEqual(os.listdir(self.drive), [])
+
+    def test_unusable_params_operator_skipped(self):
+        for i, text in enumerate((b"- a list\n", b"operator: a/b\n", b"operator: ..\n", b"operator: 42\n", b"{\n")):
+            s = os.path.join(self.root, "il_gap_selection", "bad{}".format(i))
+            touch(os.path.join(s, "session_0.bag"))
+            touch(os.path.join(s, "params.yaml"), text)
+            self.assertIsNone(il_drive.session_operator(s), text)
+            self.assertEqual(il_drive.upload_session(s, self.drive + "/", log=self.log), 0)
+        self.assertEqual(os.listdir(self.drive), [])
+
+    def test_cli_rejects_bad_operator(self):
+        tools = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        run, _ = self.make_eval()
+        for cmd in (["il_upload_eval", run], ["il_upload_sessions", run]):
+            r = subprocess.run([sys.executable, os.path.join(tools, cmd[0]), cmd[1], "--remote", self.drive + "/",
+                                "--operator", "a/b"], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 2, r.stderr)
+            self.assertIn("plain name", r.stderr)
         self.assertEqual(os.listdir(self.drive), [])
 
     def test_no_operator_skipped(self):

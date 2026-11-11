@@ -9,16 +9,15 @@
 # detached from this terminal, so this script follows it: Ctrl+C here stops the run, and the script
 # returns only when the run has ended. Then new sessions are copied to the shared Drive folder if
 # IL_DRIVE_REMOTE is set (install guide Part 7); the local copy always stays.
-if [ -z "$1" ]; then
-    echo "usage: $0 <operator> [session_name]" >&2
-    exit 1
-fi
+case "${1:-}" in
+    ""|.|..|*/*) echo "usage: $0 <operator> [session_name]  (operator: a plain name)" >&2; exit 1 ;;
+esac
 source /root/.bashrc_il
 cd /root/arena_ws
 export IL_OPERATOR="$1"
 
-# the relaunch: delay_restart.py waiting for the old master, then roslaunch ... benchmark_resume:=true
-relaunch='delay_restart\.py|roslaunch .*benchmark_resume:=true'
+# the relaunch: delay_restart.py <master pid> ... waiting for the old master, then roslaunch ... benchmark_resume:=true
+relaunch='delay_restart\.py [0-9]+ |roslaunch .*benchmark_resume:=true'
 stop_run() {
     echo; echo "Stopping the run ..."
     pkill -INT -f "$relaunch"
@@ -49,7 +48,7 @@ for _ in $(seq 30); do
 done
 
 if [ -n "${IL_DRIVE_REMOTE:-}" ]; then
-    echo; echo "Uploading new sessions to $IL_DRIVE_REMOTE$IL_OPERATOR/il_gap_selection ..."
+    echo; echo "Uploading new sessions to $IL_DRIVE_REMOTE ($IL_OPERATOR/il_gap_selection) ..."
     il_upload_sessions || echo "Upload failed; retry later with: il_upload_sessions"
 else
     echo; echo "IL_DRIVE_REMOTE is not set: sessions stay only in /root/il_data/il_gap_selection"

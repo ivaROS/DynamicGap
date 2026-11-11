@@ -25,41 +25,50 @@ def data_root():
     return os.path.realpath(os.environ.get("IL_DATA_ROOT", os.path.expanduser("~/il_data")))
 
 
+def check_operator(operator):
+    """The operator is one folder name on the Drive: raises ValueError if it is not a plain name."""
+    if not isinstance(operator, str) or not operator or "/" in operator or operator in (".", ".."):
+        raise ValueError("operator must be a plain name, got {!r}".format(operator))
+
+
 def remote_dir(remote, operator, local_dir, root=None):
     """REMOTE/<operator>/<local_dir relative to the data root> (its name if outside the root)."""
-    if not operator or "/" in operator:
-        raise ValueError("operator must be a plain name, got {!r}".format(operator))
+    check_operator(operator)
     local_dir = os.path.realpath(local_dir)
     root = os.path.realpath(root or data_root())
     if local_dir != root and os.path.commonpath([local_dir, root]) == root:
         rel = os.path.relpath(local_dir, root)
     else:
-        rel = os.path.basename(local_dir.rstrip("/"))
+        rel = os.path.basename(local_dir)
     base = remote if remote.endswith(":") else remote.rstrip("/") + "/"
     return "{}{}/{}".format(base, operator, rel)
 
 
 def session_operator(session_dir):
+    """The operator recorded in the session's params.yaml, None if missing or not a plain name."""
     try:
         with open(os.path.join(session_dir, "params.yaml")) as f:
-            return (yaml.safe_load(f) or {}).get("operator") or None
-    except (OSError, yaml.YAMLError):
+            params = yaml.safe_load(f)
+        operator = params.get("operator") if isinstance(params, dict) else None
+        check_operator(operator)
+        return operator
+    except (OSError, yaml.YAMLError, ValueError):
         return None
 
 
+def files_below(local_dir, suffix):
+    """Sorted paths of the files under local_dir (any depth) whose name ends with suffix."""
+    return sorted(os.path.join(dirpath, f) for dirpath, _, files in os.walk(local_dir)
+                  for f in files if f.endswith(suffix))
+
+
 def videos(local_dir):
-    out = []
-    for dirpath, _, files in os.walk(local_dir):
-        out += [os.path.join(dirpath, f) for f in files if f.endswith(".mp4")]
-    return sorted(out)
+    return files_below(local_dir, ".mp4")
 
 
 def recording(local_dir):
     """True while rosbag is still writing (a .bag.active file anywhere below)."""
-    for _, _, files in os.walk(local_dir):
-        if any(f.endswith(".bag.active") for f in files):
-            return True
-    return False
+    return bool(files_below(local_dir, ".bag.active"))
 
 
 def _note(local_dir, text):
@@ -93,8 +102,9 @@ def upload_eval(local_dir, remote, operator, keep_videos=False, dry_run=False, l
         if not dry_run:
             _note(local_dir, "copied to {}".format(dest))
         return len(found)
-    # the videos are on the Drive now: move deletes only the local copies whose checksums match there
-    rc = _rclone(["move", local_dir, dest, "--include", "*.mp4"], dry_run)
+    # the videos are on the Drive now: move (--checksum: compares MD5s, not size and time) deletes
+    # only the local copies whose Drive copy matches
+    rc = _rclone(["move", local_dir, dest, "--include", "*.mp4", "--checksum"], dry_run)
     if not dry_run:
         left = len(videos(local_dir))
         _note(local_dir, "copied to {}; {} videos deleted locally{}".format(
@@ -110,7 +120,7 @@ def upload_session(session_dir, remote, operator=None, dry_run=False, log=sys.st
     if recording(session_dir):
         print("{}: still recording, skipped".format(session_dir), file=log)
         return 0
-    if not any(f.endswith(".bag") for _, _, files in os.walk(session_dir) for f in files):
+    if not files_below(session_dir, ".bag"):
         # e.g. the short folder a benchmark writes before it relaunches itself: no driving in it
         print("{}: no bag (nothing recorded), skipped".format(session_dir), file=log)
         return 0

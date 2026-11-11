@@ -2,6 +2,7 @@
 # Check the IL container: display, OpenGL, repositories and branches, build, data, Drive upload.
 # Usage: il_check_install      (prints OK / WARN / FAIL per line)
 ws=/root/arena_ws
+[ -n "${ROS_DISTRO:-}" ] || source /root/.bashrc_il  # e.g. run through docker exec
 ok()   { printf '  OK    %s\n' "$*"; }
 warn() { printf '  WARN  %s\n' "$*"; }
 fail() { printf '  FAIL  %s\n' "$*"; bad=1; }
@@ -33,21 +34,23 @@ check_repo arena/utils/pedsim_ros https://github.com/ivaROS/pedsim_ros.git globa
 
 echo "Build"
 for p in dynamic_gap manual_gap_msgs rviz_plugins arena_bringup; do
-    if rospack find $p >/dev/null 2>&1; then ok "$p"; else fail "$p not found (catkin build; source ~/.bashrc)"; fi
+    if rospack find "$p" >/dev/null 2>&1; then ok "$p"; else fail "$p not found (catkin build; source ~/.bashrc)"; fi
 done
-if [ -f $ws/devel/lib/libdynamic_gap.so ]; then ok "dynamic_gap compiled"; else fail "dynamic_gap not compiled"; fi
+if [ -f "$ws/devel/lib/libdynamic_gap.so" ]; then ok "dynamic_gap compiled"; else fail "dynamic_gap not compiled"; fi
 
 echo "Data"
 for d in datasets models; do
-    n=$(ls /root/il_data/$d 2>/dev/null | wc -l)
-    [ "$n" -gt 0 ] && ok "/root/il_data/$d ($n entries, $(du -sh /root/il_data/$d | cut -f1))" || fail "/root/il_data/$d empty"
+    n=$(ls "/root/il_data/$d" 2>/dev/null | wc -l)
+    if [ "$n" -gt 0 ]; then ok "/root/il_data/$d ($n entries, $(du -sh "/root/il_data/$d" | cut -f1))"; else fail "/root/il_data/$d empty"; fi
 done
-python3 -c "import torch" 2>/dev/null && ok "torch $(python3 -c 'import torch;print(torch.__version__)')" || fail "torch missing"
+if v=$(python3 -c 'import torch; print(torch.__version__)' 2>/dev/null); then ok "torch $v"; else fail "torch missing"; fi
 
 echo "Git and Drive"
-git config --global user.name >/dev/null && ok "git user: $(git config --global user.name)" || warn "git identity not set (Part 6)"
-if [ -n "${IL_DRIVE_REMOTE:-}" ]; then ok "Drive upload to $IL_DRIVE_REMOTE"; else warn "Drive upload not set up (Part 7)"; fi
+if u=$(git config --global user.name); then ok "git user: $u"; else warn "git identity not set (Part 6)"; fi
+if [ -z "${IL_DRIVE_REMOTE:-}" ]; then warn "Drive upload not set up (Part 7)"
+elif rclone listremotes 2>/dev/null | grep -qx "${IL_DRIVE_REMOTE%%:*}:"; then ok "Drive upload to $IL_DRIVE_REMOTE"
+else fail "IL_DRIVE_REMOTE=$IL_DRIVE_REMOTE: rclone has no such remote (rclone listremotes)"; fi
 
 echo
-[ $bad = 0 ] && echo "All checks passed." || echo "Some checks FAILED: see the install guide's Troubleshooting."
+if [ $bad = 0 ]; then echo "All checks passed."; else echo "Some checks FAILED: see the install guide's Troubleshooting."; fi
 exit $bad

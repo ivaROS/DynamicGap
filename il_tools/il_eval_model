@@ -14,7 +14,7 @@ Usage (workspace sourced; ROS_MASTER_URI sets the port, e.g. http://localhost:11
   il_eval_model --report-only --out DIR   (recompute metrics and videos of earlier runs)
 
 Writes DIR/<model>/{sessions/, screen.mp4, videos/epNN_<stage>.mp4, metrics.csv, run.yaml,
-launch.log} and DIR/summary.csv (one row per model). With IL_DRIVE_REMOTE set, each model's folder
+launch.log} and DIR/summary.csv (one row per model). With IL_DRIVE_REMOTE set, DIR
 is then uploaded to the Drive and its videos deleted locally (il_upload_eval; --keep-videos keeps
 them). A model is a run folder of il_train (gap_scorer.json in it) or the gap_scorer.json itself. Only processes this driver started
 are watched and stopped; it refuses a port that is in use.
@@ -233,10 +233,9 @@ def main():
         if not operator:
             print("IL_OPERATOR is not set: nothing uploaded (il_upload_eval --operator NAME {})".format(args.out))
             return
-        for name, _ in models:
-            d = os.path.join(args.out, name)
-            if il_drive.upload_eval(d, remote, operator, keep_videos=args.keep_videos) < 0:
-                print("upload of {} failed, its videos stay local; retry: il_upload_eval {}".format(name, d))
+        # the whole --out folder (every model and summary.csv), so the eval stays together on the Drive
+        if il_drive.upload_eval(args.out, remote, operator, keep_videos=args.keep_videos) < 0:
+            print("upload failed, the videos stay local; retry: il_upload_eval {}".format(args.out))
 
 
 if __name__ == "__main__":
