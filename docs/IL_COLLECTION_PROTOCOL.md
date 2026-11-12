@@ -137,7 +137,7 @@ il_tools/il_build_dataset --out <dataset_dir> --lag <s> \
 
 Upload: `il_tools/il_upload_sessions [sessions...]` copies sessions (default: every one in
 `<data_root>/il_gap_selection` without `on_drive.txt` or `drive_skipped.txt`) to the shared Google Drive folder
-`Research/ImitationLearning/ilData/<operator>/il_gap_selection/<session>/` (rclone remote
+`ilData/<operator>/il_gap_selection/<session>/` (rclone remote
 `ildrive:`, `IL_DRIVE_REMOTE`); the local copy stays and `on_drive.txt` records the upload.
 Folders still recording or without a bag (the pre-relaunch folder) are skipped.
 

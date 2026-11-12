@@ -1,7 +1,7 @@
 """Upload IL data to the shared Google Drive folder with rclone.
 
 Layout on the Drive (REMOTE = $IL_DRIVE_REMOTE: `ildrive:`, an rclone remote rooted at the shared
-folder Research/ImitationLearning/ilData; the shells set it when that remote exists), mirroring
+folder ilData, Drive folder id 1cBxaI5KS-Ux-l3pW-MM9w-hOoD1V7upC; the shells set it when that remote exists), mirroring
 ~/il_data per person so a run's bags, metrics and videos stay together:
   REMOTE/<operator>/il_gap_selection/<session>/...   collected sessions: copied, the local copy stays
   REMOTE/<operator>/evals/<eval>/<model>/...         eval runs: all copied, then the local videos deleted
