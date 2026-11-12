@@ -53,7 +53,7 @@ into ivaROS `imitation_learning`. Students push to ivaROS (branch + pull request
 ## Drive uploads
 
 `il_tools/il_drive.py` (`il_upload_sessions`, `il_upload_eval`, and `il_eval_model` at its end)
-copies runs to Google Drive `Research/ImitationLearning/ilData/<operator>/` with the same layout as
+copies runs to the shared Google Drive folder [ilData](https://drive.google.com/drive/folders/1cBxaI5KS-Ux-l3pW-MM9w-hOoD1V7upC) (`ilData/<operator>/`) with the same layout as
 `~/il_data` (`il_gap_selection/<session>/`, `evals/<eval>/<model>/`). Sessions are copied, never
 deleted; eval videos are deleted locally once their Drive copy's MD5 matches. The rclone remote is
 `ildrive:`; `IL_DRIVE_REMOTE` and `IL_OPERATOR` select it and the person.
