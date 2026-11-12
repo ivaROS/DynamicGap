@@ -157,10 +157,12 @@ def example(session, obs, label_tick, label_idx, followed=None):
 
 
 def load_set(path):
-    """Episode set file (e.g. il_data/sets/*.yaml): {session dir: {episode id: from_tick}}.
+    """Episode set file (e.g. il_data/sets/*.yaml): {session dir: {episode id: (from_tick, to_tick)}}.
     Sessions are relative to the file's root; episodes are grouped under any keys. An
     entry's from_tick (optional, None if absent) drops the episode's ticks before that
-    tick_seq, as labels and as observations (e.g. a collision right after the spawn)."""
+    tick_seq, as labels and as observations (e.g. a collision right after the spawn); its
+    to_tick (optional) drops the label ticks after that tick_seq (e.g. the lead-up to a
+    collision near the end)."""
     with open(path) as f:
         spec = yaml.safe_load(f)
     root = os.path.expanduser(spec.get("root", os.path.dirname(os.path.abspath(path))))
@@ -168,19 +170,20 @@ def load_set(path):
     selection = {}
     for group in groups:
         for entry in group:
-            from_tick = entry.get("from_tick")
+            from_tick, to_tick = entry.get("from_tick"), entry.get("to_tick")
             selection.setdefault(os.path.join(root, entry["session"]), {})[int(entry["episode"])] = (
-                None if from_tick is None else int(from_tick))
+                None if from_tick is None else int(from_tick), None if to_tick is None else int(to_tick))
     return selection
 
 
 def build_examples(session, samples, outcomes, opts, episodes=None):
     """Examples of one session and the counts of what was dropped. With
-    episodes (ids, or {id: from_tick} as load_set gives) only those are used, and
-    they are kept even if they collided; ticks before an episode's from_tick are cut."""
+    episodes (ids, or {id: (from_tick, to_tick)} as load_set gives) only those are used, and
+    they are kept even if they collided; ticks before an episode's from_tick and label
+    ticks after its to_tick are cut."""
     counts = {"usable": 0, "not_in_set": 0, "cut": 0, "threshold": 0, "collision_episode": 0, "no_obs_tick": 0,
               "obs_too_old": 0, "obs_invalid": 0, "identity_lost": 0, "duplicate": 0, "kept": 0}
-    from_ticks = episodes if isinstance(episodes, dict) else {}
+    cuts = episodes if isinstance(episodes, dict) else {}
     by_episode = {}
     for s in samples:
         if s.episode_id >= 0:
@@ -196,8 +199,9 @@ def build_examples(session, samples, outcomes, opts, episodes=None):
             if episodes is not None and episode not in episodes:
                 counts["not_in_set"] += 1
                 continue
-            from_tick = from_ticks.get(episode)
-            if from_tick is not None and tick.tick_seq < from_tick:
+            from_tick, to_tick = cuts.get(episode) or (None, None)
+            if (from_tick is not None and tick.tick_seq < from_tick) or \
+                    (to_tick is not None and tick.tick_seq > to_tick):
                 counts["cut"] += 1
                 continue
             if not passes_thresholds(tick, opts):
@@ -249,7 +253,7 @@ def build_examples(session, samples, outcomes, opts, episodes=None):
 
 
 def build_dataset(session_dirs, out_dir, opts=None, namespace=None, selection=None):
-    """selection: {session dir: {episode id: from_tick}} (load_set) to use only those episodes."""
+    """selection: {session dir: {episode id: (from_tick, to_tick)}} (load_set) to use only those episodes."""
     opts = dict(DEFAULTS, **(opts or {}))
     os.makedirs(out_dir, exist_ok=True)
     files = {name: gzip.open(os.path.join(out_dir, name + ".jsonl.gz"), "wt") for name in opts["splits"]}

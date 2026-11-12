@@ -965,6 +965,7 @@ out of scope for this pass by decision; documented, not changed.
 | PL-50 | HIGH | Gap scorer's terminal-cost term dropped on schema-1 data, so no pull toward the goal | dynamic_gap | Fixed `2afe89f`; review fixes (empty splits, ablation, identity) `acf0089`…`703a5f1`, [doc](il_pipeline_fixes/50-terminal-cost-term.md) |
 | PL-51 | HIGH | Benchmark stages on the same map ran one episode late (first stage twice, last never) | arena-rosnav | Fixed arena-rosnav `caa8417c4`; review fixes (stage timeout and seed, run stops on a failed config, per-episode timeout in `episodes.csv`) `45e93f7a3`…`fb7afaeeb`; pipeline test 2026-10-26 (CS1–CS4 in order, collect → check → dataset → train → learned scorer in closed loop), [doc](il_pipeline_fixes/51-benchmark-stage-one-episode-late.md) |
 | PL-53 | HIGH | Recording not raw enough to re-derive: GRU inputs (per-scan simplified gaps), episode scenario and seed, static obstacles, full candidate paths, tubes and covariances missing; lab overlay stale (schema 3) | dynamic_gap, arena-rosnav | Done (schema 5), verified in simulation 2026-11-11, [doc](il_pipeline_fixes/53-raw-recording.md) |
+| PL-54 | LOW | Episode sets could only cut the start of an episode; a collision near the end lost the whole episode | dynamic_gap | Done, [doc](il_pipeline_fixes/54-episode-set-to-tick.md) |
 
 Approved behaviour changes and the cursor-continuity requirement (a still
 mouse keeps its selection; nothing may require mouse movement) are recorded
