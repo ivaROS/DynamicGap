@@ -431,7 +431,7 @@ class DatasetTest(SessionTestCase):
             yaml.safe_dump({"root": os.path.dirname(self.dir),
                             "episodes": {"corner": [{"session": os.path.basename(self.dir), "episode": 1}]}}, f)
         selection = il_dataset.load_set(set_file)
-        self.assertEqual(selection, {self.dir: {1: None}})
+        self.assertEqual(selection, {self.dir: {1: (None, None)}})
         out = os.path.join(self.dir, "out")
         summary = il_dataset.build_dataset(list(selection), out, {"splits": {"train": 1.0}}, selection=selection)
         counts = summary["sessions"][os.path.basename(self.dir)]["counts"]
@@ -447,7 +447,7 @@ class DatasetTest(SessionTestCase):
             yaml.safe_dump({"root": os.path.dirname(self.dir),
                             "episodes": {"g": [{"session": os.path.basename(self.dir), "episode": 1, "from_tick": 25}]}}, f)
         selection = il_dataset.load_set(set_file)
-        self.assertEqual(selection, {self.dir: {1: 25}})
+        self.assertEqual(selection, {self.dir: {1: (25, None)}})
         out = os.path.join(self.dir, "out")
         summary = il_dataset.build_dataset(list(selection), out, {"splits": {"train": 1.0}, "lag_s": 0.15},
                                            selection=selection)
@@ -456,6 +456,28 @@ class DatasetTest(SessionTestCase):
             examples = [json.loads(line) for line in f]
         self.assertTrue(examples)
         self.assertTrue(all(ex["obs_tick"] >= 25 for ex in examples))
+        self.assertGreater(counts["cut"], 0)
+
+    def test_episode_set_cuts_label_ticks_after_to_tick(self):
+        # a collision near the end: the episode is kept up to tick 32, from tick 22 on
+        samples = self.good_samples()
+        samples[36].status = samples[36].STATUS_COLLIDING
+        self.write(samples)
+        set_file = os.path.join(self.dir, "set.yaml")
+        with open(set_file, "w") as f:
+            yaml.safe_dump({"root": os.path.dirname(self.dir),
+                            "episodes": {"g": [{"session": os.path.basename(self.dir), "episode": 1,
+                                                "from_tick": 22, "to_tick": 32}]}}, f)
+        selection = il_dataset.load_set(set_file)
+        self.assertEqual(selection, {self.dir: {1: (22, 32)}})
+        out = os.path.join(self.dir, "out")
+        summary = il_dataset.build_dataset(list(selection), out, {"splits": {"train": 1.0}, "lag_s": 0.15},
+                                           selection=selection)
+        counts = summary["sessions"][os.path.basename(self.dir)]["counts"]
+        with gzip.open(os.path.join(out, "train.jsonl.gz"), "rt") as f:
+            examples = [json.loads(line) for line in f]
+        self.assertTrue(examples)
+        self.assertTrue(all(22 <= ex["obs_tick"] and ex["label_tick"] <= 32 for ex in examples))
         self.assertGreater(counts["cut"], 0)
 
     def test_observation_in_reset_window_or_not_planned_dropped(self):
