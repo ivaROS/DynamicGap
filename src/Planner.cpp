@@ -3086,6 +3086,12 @@ if (traj.getPathTiming().empty()) {
 
     void Planner::runPlanningLoop(Trajectory & chosenTraj, int & trajFlag) 
     {
+        if (!mppiRanLastCycle_)
+        {
+            mppiWarmStart_.clear();
+            mppiPairStreaks_.clear();
+        }
+        mppiRanLastCycle_ = false;
         trajFlag = NONE;
         ROS_INFO_STREAM_NAMED("Planner", "[runPlanningLoop()]: count " << timeKeeper_->getPlanningLoopCalls());
 

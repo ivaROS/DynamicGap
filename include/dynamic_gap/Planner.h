@@ -39,6 +39,7 @@
 #include <dynamic_gap/scan_processing/DynamicScanPropagator.h>
 #include <dynamic_gap/trajectory_evaluation/TrajectoryEvaluator.h>
 #include <dynamic_gap/trajectory_generation/GapManipulator.h>
+#include <dynamic_gap/trajectory_generation/MppiWarmStart.h>
 #include <dynamic_gap/trajectory_generation/GapGoalPlacer.h>
 #include <dynamic_gap/trajectory_generation/GapTrajectoryGenerator.h>
 #include <dynamic_gap/trajectory_generation/UngapTrajectoryGenerator.h>
@@ -85,6 +86,13 @@ namespace dynamic_gap
                                  std::vector<float>& terminalCosts,
                                  const std::vector<sensor_msgs::LaserScan>& futureScans);
         unsigned int mppiCycle_ = 0;
+        MppiWarmStartCache mppiWarmStart_;
+        std::map<MppiWarmStartCache::Key, unsigned int> mppiPairStreaks_;
+        bool mppiRanLastCycle_ = false;
+        double mppiPreviousStamp_ = -1;
+        geometry_msgs::Pose mppiPreviousOdomPose_;
+        geometry_msgs::Pose mppiPreviousGoal_;
+        std::string mppiPreviousFrame_;
         bool tryGoalApproach(Trajectory& trajectory, int& flag);
         ros::Publisher goalApproachStatusPublisher_;
 

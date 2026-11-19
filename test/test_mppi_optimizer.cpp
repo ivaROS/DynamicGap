@@ -1,5 +1,6 @@
 #include <dynamic_gap/trajectory_generation/MppiOptimizer.h>
 #include <gtest/gtest.h>
+#include <dynamic_gap/trajectory_generation/MppiWarmStart.h>
 
 #include <limits>
 
@@ -12,6 +13,25 @@ geometry_msgs::Pose initialPose()
     geometry_msgs::Pose pose;
     pose.orientation.w = 1;
     return pose;
+}
+
+TEST(MppiWarmStart, FractionalShiftPreservesCurrentSpeedAndFillsTail)
+{
+    MppiWarmStartCache cache;
+    MppiControls previous(2), fresh(2);
+    previous[0].angular.z = 1;
+    previous[1].angular.z = -1;
+    for (auto& u : fresh) u.linear.x = 0.35;
+    cache.remember({2,3}, previous, 1, 0.5);
+    const auto seed = cache.seed({2,3}, fresh, 1.1, 0.5, 1, 2);
+    ASSERT_TRUE(seed.reused);
+    EXPECT_NEAR(seed.controls[0].angular.z, 0.6, 1e-10);
+    EXPECT_NEAR(seed.controls[1].angular.z, -0.8, 1e-10);
+    EXPECT_DOUBLE_EQ(seed.controls[0].linear.x, 0.35);
+    EXPECT_FALSE(cache.seed({3,2}, fresh, 1.1, 0.5, 1, 2).reused);
+    EXPECT_FALSE(cache.seed({2,3}, fresh, 2.1, 0.5, 1, 2).reused);
+    cache.retain({});
+    EXPECT_FALSE(cache.seed({2,3}, fresh, 1.1, 0.5, 1, 2).reused);
 }
 
 TEST(MppiOptimizer, WeightedNominalUsesWholeHorizonAndImprovesSeed)

@@ -20,6 +20,10 @@ namespace dynamic_gap
              !std::isfinite(goal_approach.prediction_horizon) || goal_approach.prediction_horizon < 0.5 ||
              !std::isfinite(goal_approach.max_scan_age) || goal_approach.max_scan_age <= 0))
             throw std::invalid_argument("goal_approach requires finite positive distances/speed/age, nonnegative clearance, and horizon >= 0.5 s");
+        nh.param("mppi/warm_start", mppi.warm_start, mppi.warm_start);
+        nh.param("mppi/warm_start_max_age", mppi.warm_start_max_age, mppi.warm_start_max_age);
+        if (!std::isfinite(mppi.warm_start_max_age) || mppi.warm_start_max_age <= 0)
+            throw std::invalid_argument("mppi/warm_start_max_age must be positive and finite");
         nh.param("mppi/mode", mppi.mode, mppi.mode);
         nh.param("mppi/total_samples", mppi.total_samples, mppi.total_samples);
         nh.param("mppi/horizon", mppi.horizon, mppi.horizon);

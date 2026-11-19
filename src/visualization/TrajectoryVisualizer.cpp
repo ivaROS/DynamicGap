@@ -106,6 +106,9 @@ namespace dynamic_gap
                     ++drawn;
             }
 
+            std_msgs::ColorRGBA white;
+            white.r = white.g = white.b = white.a = 1;
+            append_line(gap.seed, ns + "/seed", 0, white, 0.025, 0.11);
             const bool have_nominal = append_line(gap.nominal, ns + "/nominal", 0,
                                                   color, 0.065, 0.07);
             const geometry_msgs::PoseArray* label_path = have_nominal ? &gap.nominal : nullptr;
@@ -141,6 +144,7 @@ namespace dynamic_gap
                  << "] J=" << std::fixed << std::setprecision(2) << gap.cost
                  << "\nsamples=" << gap.total_samples << " drawn=" << drawn
                  << " feasible=" << gap.feasible_samples << " progress=" << gap.progress_samples;
+            if (!gap.seed_label.empty()) text << "\n" << gap.seed_label;
             label.text = text.str();
             current_keys.emplace(label.ns, label.id);
             result.markers.push_back(std::move(label));

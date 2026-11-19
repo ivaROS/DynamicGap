@@ -1,0 +1,46 @@
+Running main() from /usr/src/googletest/googletest/src/gtest_main.cc
+[==========] Running 10 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from MppiOptimizer
+[ RUN      ] MppiOptimizer.WeightedNominalUsesWholeHorizonAndImprovesSeed
+[       OK ] MppiOptimizer.WeightedNominalUsesWholeHorizonAndImprovesSeed (2 ms)
+[ RUN      ] MppiOptimizer.AllCollidingSamplesNeverProduceAnExecutableNominal
+[       OK ] MppiOptimizer.AllCollidingSamplesNeverProduceAnExecutableNominal (0 ms)
+[ RUN      ] MppiOptimizer.RejectsInvalidTemperatureAndNonfiniteSeeds
+[       OK ] MppiOptimizer.RejectsInvalidTemperatureAndNonfiniteSeeds (0 ms)
+[ RUN      ] MppiOptimizer.CollidingWeightedMeanUsesCheckedFallback
+[       OK ] MppiOptimizer.CollidingWeightedMeanUsesCheckedFallback (0 ms)
+[ RUN      ] MppiOptimizer.SeededRunsAreReproducibleAndWeightsHandleLargeCosts
+[       OK ] MppiOptimizer.SeededRunsAreReproducibleAndWeightsHandleLargeCosts (1 ms)
+[----------] 5 tests from MppiOptimizer (3 ms total)
+
+[----------] 1 test from MppiSensitivity
+[ RUN      ] MppiSensitivity.ObstacleWeightWithIdenticalSamples
+
+multiplier,feasible,ESS,max_weight,mean_obstacle_cost,terminal_cost,min_segment_clearance,end_x,end_y,first_omega
+0,57,48.0533,0.0284484,0,0.25514,0.206553,2.48629,-0.254771,-0.0931799
+1,57,48.6183,0.0300578,0,0.279327,0.217686,2.48364,-0.278848,-0.10531
+20,57,31.2244,0.0531717,0,0.524209,0.327623,2.4431,-0.521112,-0.237342
+[       OK ] MppiSensitivity.ObstacleWeightWithIdenticalSamples (32 ms)
+[----------] 1 test from MppiSensitivity (32 ms total)
+
+[----------] 2 tests from MppiGapContract
+[ RUN      ] MppiGapContract.SharedBezierTimingPreservesOriginalSpeedAndCurvatureScaling
+[       OK ] MppiGapContract.SharedBezierTimingPreservesOriginalSpeedAndCurvatureScaling (0 ms)
+[ RUN      ] MppiGapContract.SteeringOptimizationKeepsNativeSpacingAndTotalDistance
+[       OK ] MppiGapContract.SteeringOptimizationKeepsNativeSpacingAndTotalDistance (0 ms)
+[----------] 2 tests from MppiGapContract (0 ms total)
+
+[----------] 1 test from MppiNativeCost
+[ RUN      ] MppiNativeCost.RejectsBetweenStepCollisionAndMisalignedTiming
+[       OK ] MppiNativeCost.RejectsBetweenStepCollisionAndMisalignedTiming (1 ms)
+[----------] 1 test from MppiNativeCost (1 ms total)
+
+[----------] 1 test from MppiNativeOutput
+[ RUN      ] MppiNativeOutput.KeepsOriginalLayoutAndRecomputesOriginalCostComponents
+[       OK ] MppiNativeOutput.KeepsOriginalLayoutAndRecomputesOriginalCostComponents (0 ms)
+[----------] 1 test from MppiNativeOutput (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 5 test suites ran. (36 ms total)
+[  PASSED  ] 10 tests.

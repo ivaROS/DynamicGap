@@ -1,0 +1,30 @@
+{
+  "status": "reached_recording_threshold",
+  "optimizer_calls": 82,
+  "fresh_initializations": 82,
+  "warm_starts": 0,
+  "persistent_pair_resets": 81,
+  "endpoint_pairs": [
+    [
+      "24",
+      "25"
+    ]
+  ],
+  "maximum_pair_streak": 82,
+  "first_stamp": 10.27,
+  "last_stamp": 18.385,
+  "observed_span_s": 8.115000000000002,
+  "seed_sources": {
+    "bezier": 55,
+    "bezier_command_fallback": 27
+  },
+  "valid_outputs": 82,
+  "mean_abs_delta_w_range": [
+    0.0213753,
+    0.0946197
+  ],
+  "verified_seed_frames": 82,
+  "verified_label_frames": 82,
+  "seed_delete_verified": true,
+  "excluded_pre_reset_logs": 1
+}

@@ -82,6 +82,8 @@ namespace dynamic_gap
             struct Mppi
             {
                 bool enabled = true;
+                bool warm_start = true;
+                double warm_start_max_age = 1.0; // simulation seconds
                 std::string mode = "gap_guided"; // or "standard" (one forward nominal)
                 int total_samples = 96;         // shared across gaps, per iteration
                 int horizon = 10;               // controls; rollout has horizon + 1 poses

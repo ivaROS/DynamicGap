@@ -17,7 +17,8 @@ namespace dynamic_gap
         int right_id = -1;
         std::vector<geometry_msgs::PoseArray> samples;
         std::vector<bool> sample_feasible;
-        geometry_msgs::PoseArray nominal;
+        geometry_msgs::PoseArray nominal, seed;
+        std::string seed_label;
         float cost = std::numeric_limits<float>::infinity();
         std::size_t total_samples = 0;
         std::size_t feasible_samples = 0;

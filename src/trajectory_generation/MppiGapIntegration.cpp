@@ -118,6 +118,34 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     poseCosts.assign(gapTubes.size(), std::vector<float>{infinity});
     terminalCosts.assign(gapTubes.size(), infinity);
     const unsigned int cycle = mppiCycle_++;
+    mppiRanLastCycle_ = true;
+    const double now = ros::Time::now().toSec();
+    const auto pose = rbtPoseInOdomFrame_.pose;
+    const auto goalPose = globalGoalOdomFrame_.pose;
+    if (now <= mppiPreviousStamp_ || now - mppiPreviousStamp_ > cfg_.mppi.warm_start_max_age ||
+        std::hypot(pose.position.x - mppiPreviousOdomPose_.position.x,
+                   pose.position.y - mppiPreviousOdomPose_.position.y) > 0.3 + cfg_.rbt.vx_absmax * (now - mppiPreviousStamp_) ||
+        std::hypot(goalPose.position.x - mppiPreviousGoal_.position.x,
+                   goalPose.position.y - mppiPreviousGoal_.position.y) > cfg_.goal.xy_global_goal_tolerance ||
+        mppiPreviousFrame_ != cfg_.sensor_frame_id)
+    {
+        mppiWarmStart_.clear();
+        mppiPairStreaks_.clear();
+    }
+    mppiPreviousStamp_ = now;
+    mppiPreviousGoal_ = goalPose;
+    mppiPreviousOdomPose_ = pose;
+    mppiPreviousFrame_ = cfg_.sensor_frame_id;
+    const auto previousStreaks = std::move(mppiPairStreaks_);
+    mppiPairStreaks_.clear();
+    std::set<MppiWarmStartCache::Key> active, ambiguous;
+    for (auto index : optimizerIndices)
+    {
+        auto* g = gapTubes[index]->at(0);
+        MppiWarmStartCache::Key key{g->getLeftGapPt()->getModel()->getID(), g->getRightGapPt()->getModel()->getID()};
+        if (!active.insert(key).second) ambiguous.insert(key);
+    }
+    mppiWarmStart_.retain(active);
     bool anyValid = false;
     std::size_t totalSamples = 0;
     DynamicGapConfig optimizerConfig = cfg_;
@@ -147,11 +175,31 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             nominal.assign(horizon, seed);
         }
 
+        Gap* gap = gapTubes[i]->at(0);
+        const MppiWarmStartCache::Key key{gap->getLeftGapPt()->getModel()->getID(), gap->getRightGapPt()->getModel()->getID()};
+        const bool identified = key.first >= 0 && key.second >= 0 && !ambiguous.count(key);
+        const auto previous = previousStreaks.find(key);
+        const unsigned streak = identified ? (previous == previousStreaks.end() ? 1 : previous->second + 1) : 0;
+        mppiPairStreaks_[key] = streak;
+        bool warm = false;
+        if (identified && cfg_.mppi.warm_start)
+        {
+            auto seed = mppiWarmStart_.seed(key, nominal, now, cfg_.traj.integrate_stept,
+                cfg_.mppi.warm_start_max_age, cfg_.rbt.vang_absmax);
+            if (seed.reused)
+            {
+                auto path = rolloutMppiControls(initial, seed.controls, cfg_.traj.integrate_stept, cfg_.sensor_frame_id);
+                if (std::isfinite(score(path)))
+                {
+                    nominal = std::move(seed.controls);
+                    warm = true;
+                }
+            }
+        }
         const std::size_t count = cfg_.mppi.total_samples / optimizerIndices.size() +
             (optimizerIndex < cfg_.mppi.total_samples % optimizerIndices.size() ? 1 : 0);
         MppiOptimizer optimizer(optimizerConfig, unsigned(cfg_.mppi.seed) + 1664525u * cycle + 1013904223u * unsigned(i));
         auto result = optimizer.optimize(initial, nominal, count, cfg_.sensor_frame_id, score, forwardSpeed);
-        Gap* gap = gapTubes[i]->at(0);
         // Re-evaluate exactly the candidate exported to the existing pipeline.
         // Never export internal common costs computed against other gaps.
         if (result.valid)
@@ -162,6 +210,16 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
                 cfg_, futureScans, visiblePlan, gap, forwardSpeed * cfg_.traj.integrate_stept);
         }
         MppiGapVisualization view;
+        if (identified && cfg_.mppi.warm_start && result.valid)
+            mppiWarmStart_.remember(key, result.controls, now, cfg_.traj.integrate_stept);
+        else
+            mppiWarmStart_.erase(key);
+        if (cfg_.mppi.visualize)
+            view.seed = rolloutMppiControls(initial, nominal, cfg_.traj.integrate_stept, cfg_.sensor_frame_id).pose_array;
+        view.seed_label = std::string(warm ? "WARM" : "FRESH") + " cycle=" + std::to_string(cycle)
+            + " pair_streak=" + std::to_string(streak);
+        ROS_INFO_STREAM_NAMED("MPPISeed", view.seed_label << " left=" << key.first << " right=" << key.second
+            << " valid=" << result.valid);
         view.gap_index = i;
         view.left_id = gap->getLeftGapPt()->getModel()->getID();
         view.right_id = gap->getRightGapPt()->getModel()->getID();

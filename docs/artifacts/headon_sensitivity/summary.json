@@ -1,0 +1,197 @@
+[
+  {
+    "multiplier": 0.0,
+    "status": "reached_task_tolerance",
+    "started": true,
+    "elapsed_wall_s": 14.0209205049905,
+    "final_state": {
+      "pose": [
+        18.970802307128906,
+        9.996988296508789,
+        0.002876800950616598
+      ],
+      "distance": 1.029202099380438,
+      "speed": 0.4999987483024597
+    },
+    "parameters": {
+      "holonomic": false,
+      "projection_operator": true,
+      "egocircle_prop_cheat": false,
+      "gap_feasibility_check": true,
+      "perfect_gap_models": false,
+      "future_scan_propagation": true,
+      "man_ctrl": false,
+      "ctrl_ahead_pose": 2,
+      "xy_goal_tolerance": 0.25,
+      "yaw_goal_tolerance": 6.28,
+      "xy_waypoint_tolerance": 0.1,
+      "assoc_thresh": 1.0,
+      "rgc_angle": 1.0,
+      "integrate_maxt": 5.0,
+      "integrate_stept": 0.5,
+      "max_pose_to_scan_dist": 0.8,
+      "Q": 0.0,
+      "pen_exp_weight": 5.0,
+      "inf_ratio": 1.0,
+      "Q_f": 0.05,
+      "k_po_x": 1.0,
+      "r_unity": 0.35,
+      "r_zero": 1.0,
+      "robot_radius": 0.225,
+      "max_vel_x": 0.75,
+      "max_vel_y": 0.75,
+      "max_vel_theta": 1.0,
+      "max_range": 5.0,
+      "estimation": {
+        "Q": 0.01,
+        "R": 0.01
+      },
+      "control": {
+        "linear_vel_x": 0.0,
+        "linear_vel_y": 0.0,
+        "angular_vel_z": 0.0
+      }
+    },
+    "min_person_center_distance": 0.9653205470844761,
+    "min_scan": 0.645817220211029,
+    "max_lateral_deviation": 0.42145252227783203,
+    "elapsed_sim_s": 14.000000000000002,
+    "observed_start_pose": [
+      10.05335807800293,
+      10.003067970275879,
+      0.6988159418106079
+    ],
+    "person_max_displacement_m": 0.0,
+    "path_length_m": 9.023901529031646
+  },
+  {
+    "multiplier": 1.0,
+    "status": "reached_task_tolerance",
+    "started": true,
+    "elapsed_wall_s": 14.021751055959612,
+    "final_state": {
+      "pose": [
+        18.966732025146484,
+        9.994433403015137,
+        0.005378088448196649
+      ],
+      "distance": 1.0332829694037724,
+      "speed": 0.4999922513961792
+    },
+    "parameters": {
+      "holonomic": false,
+      "projection_operator": true,
+      "egocircle_prop_cheat": false,
+      "gap_feasibility_check": true,
+      "perfect_gap_models": false,
+      "future_scan_propagation": true,
+      "man_ctrl": false,
+      "ctrl_ahead_pose": 2,
+      "xy_goal_tolerance": 0.25,
+      "yaw_goal_tolerance": 6.28,
+      "xy_waypoint_tolerance": 0.1,
+      "assoc_thresh": 1.0,
+      "rgc_angle": 1.0,
+      "integrate_maxt": 5.0,
+      "integrate_stept": 0.5,
+      "max_pose_to_scan_dist": 0.8,
+      "Q": 1.0,
+      "pen_exp_weight": 5.0,
+      "inf_ratio": 1.0,
+      "Q_f": 0.05,
+      "k_po_x": 1.0,
+      "r_unity": 0.35,
+      "r_zero": 1.0,
+      "robot_radius": 0.225,
+      "max_vel_x": 0.75,
+      "max_vel_y": 0.75,
+      "max_vel_theta": 1.0,
+      "max_range": 5.0,
+      "estimation": {
+        "Q": 0.01,
+        "R": 0.01
+      },
+      "control": {
+        "linear_vel_x": 0.0,
+        "linear_vel_y": 0.0,
+        "angular_vel_z": 0.0
+      }
+    },
+    "min_person_center_distance": 0.9933177774568853,
+    "min_scan": 0.6734994053840637,
+    "max_lateral_deviation": 0.4193286895751953,
+    "elapsed_sim_s": 14.0,
+    "observed_start_pose": [
+      10.042275428771973,
+      10.003324508666992,
+      0.6971753239631653
+    ],
+    "person_max_displacement_m": 0.0,
+    "path_length_m": 9.035399088436845
+  },
+  {
+    "multiplier": 20.0,
+    "status": "reached_task_tolerance",
+    "started": true,
+    "elapsed_wall_s": 14.01997875602683,
+    "final_state": {
+      "pose": [
+        18.97039222717285,
+        9.956737518310547,
+        0.041987087577581406
+      ],
+      "distance": 1.0305162823497798,
+      "speed": 0.49956050515174866
+    },
+    "parameters": {
+      "holonomic": false,
+      "projection_operator": true,
+      "egocircle_prop_cheat": false,
+      "gap_feasibility_check": true,
+      "perfect_gap_models": false,
+      "future_scan_propagation": true,
+      "man_ctrl": false,
+      "ctrl_ahead_pose": 2,
+      "xy_goal_tolerance": 0.25,
+      "yaw_goal_tolerance": 6.28,
+      "xy_waypoint_tolerance": 0.1,
+      "assoc_thresh": 1.0,
+      "rgc_angle": 1.0,
+      "integrate_maxt": 5.0,
+      "integrate_stept": 0.5,
+      "max_pose_to_scan_dist": 0.8,
+      "Q": 20.0,
+      "pen_exp_weight": 5.0,
+      "inf_ratio": 1.0,
+      "Q_f": 0.05,
+      "k_po_x": 1.0,
+      "r_unity": 0.35,
+      "r_zero": 1.0,
+      "robot_radius": 0.225,
+      "max_vel_x": 0.75,
+      "max_vel_y": 0.75,
+      "max_vel_theta": 1.0,
+      "max_range": 5.0,
+      "estimation": {
+        "Q": 0.01,
+        "R": 0.01
+      },
+      "control": {
+        "linear_vel_x": 0.0,
+        "linear_vel_y": 0.0,
+        "angular_vel_z": 0.0
+      }
+    },
+    "min_person_center_distance": 1.2184154688156894,
+    "min_scan": 0.8986367583274841,
+    "max_lateral_deviation": 0.3833293914794922,
+    "elapsed_sim_s": 14.000000000000002,
+    "observed_start_pose": [
+      10.050297737121582,
+      10.00336742401123,
+      0.7090891003608704
+    ],
+    "person_max_displacement_m": 0.0,
+    "path_length_m": 9.056212158595729
+  }
+]

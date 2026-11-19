@@ -2,6 +2,8 @@
 # /rto/move_base_flex/DynamicGapPlannerROS. Set before planner initialization.
 mppi:
   enabled: true
+  warm_start: true
+  warm_start_max_age: 1.0          # discard control history older than this (simulation seconds)
   mode: gap_guided                 # gap_guided or standard
   total_samples: 96                # shared across ALL gaps, per iteration
   # Planner output is fixed to the original 11 poses / 10 intervals.

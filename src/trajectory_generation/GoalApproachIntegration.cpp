@@ -70,6 +70,8 @@ bool Planner::tryGoalApproach(Trajectory& trajectory, int& flag)
         catch (const tf2::TransformException&) { return false; }
     }
 
+    mppiWarmStart_.clear();
+    mppiPairStreaks_.clear();
     flag = GOAL_APPROACH;
     geometry_msgs::PoseArray stopped;
     stopped.header.frame_id = cfg_.robot_frame_id;

@@ -1,0 +1,4 @@
+gap 0 [24,25] J=0.02
+samples=96 drawn=96 feasible=96 progress=96
+FRESH bezier_command_fallback seed; warm_start=NO cycle=135
+pair_streak=82 (PERSISTING)

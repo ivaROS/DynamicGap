@@ -18,7 +18,7 @@ struct MppiResult
     bool valid = false;
 };
 
-// A fresh instance/nominal per current candidate; no gap identity tracking or warm start.
+// Stateless optimization call; Planner supplies a fresh or temporally shifted cached nominal.
 class MppiOptimizer
 {
 public:
