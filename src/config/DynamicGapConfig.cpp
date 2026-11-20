@@ -110,6 +110,7 @@ namespace dynamic_gap
             ros_throw_param_load(nh, "egocircle_prop_cheat", planning.egocircle_prop_cheat);
             // nh.param("projection_operator", planning.projection_operator, planning.projection_operator);
             ros_throw_param_load(nh, "projection_operator", planning.projection_operator);
+            nh.param("cbf_enabled", planning.cbf_enabled, planning.cbf_enabled);
             // nh.param("gap_feasibility_check", planning.gap_feasibility_check, planning.gap_feasibility_check);
             ros_throw_param_load(nh, "gap_feasibility_check", planning.gap_feasibility_check);
             nh.param("perfect_gap_models", planning.perfect_gap_models, planning.perfect_gap_models);

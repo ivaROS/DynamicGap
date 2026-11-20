@@ -3676,6 +3676,7 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                 // ROS_ERROR_STREAM_NAMED("Controller", "v_cmd: " << v_cmd << " w_cmd: " << w_cmd);
                 ROS_WARN_STREAM_THROTTLE(5.0,
                     "[CBF MODE] dwa_method=" << cfg_.planning.dwa_method
+                    << " cbf_enabled=" << cfg_.planning.cbf_enabled
                     << " trajFlag=" << trajFlag);
 
                 if (cfg_.planning.dwa_method) 
@@ -3691,9 +3692,17 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
 
 
 
+                    CbfLinConstraint leftCBFOutput;
+                    CbfLinConstraint rightCBFOutput;
+                    if (!cfg_.planning.cbf_enabled) {
+                        cmdVel = trajController_->processCmdVelNonHolonomic(
+                            currPoseOdomFrame,
+                            targetTrajectoryPose,
+                            rawCmdVel,
+                            rbtPoseInSensorFrame_);
+                    } else {
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic v_cmd: " << v_cmd << "w_cmd: "<< w_cmd);
                     // ROS_ERROR_STREAM_NAMED("Controller", "right before processCmdVelNonHolonomic H_left: " << H_left);
-                    CbfLinConstraint leftCBFOutput; 
                      leftCBFOutput =  trajController_->cbf_processCmdVelNonHolonomic(
                                 currPoseOdomFrame,
                                 targetTrajectoryPose,
@@ -3705,7 +3714,6 @@ geometry_msgs::Twist Planner::ctrlGeneration(Trajectory & localTrajectory, int &
                                 localTrajectory.robotVel
                             );
 
-                    CbfLinConstraint rightCBFOutput; 
                      rightCBFOutput = trajController_->cbf_processCmdVelNonHolonomic(
                                 currPoseOdomFrame,
                                 targetTrajectoryPose,
@@ -3804,6 +3812,8 @@ else {
                                                                             rawCmdVel,
                                                                             rbtPoseInSensorFrame_);   
                 }
+
+                    }
 
                     // todo 0128 process nonHolonomicCmd() is not run
                     // for goToGoal trajs, meaning that no cbf, no PO and 
@@ -4076,5 +4086,4 @@ else {
   m.lifetime = ros::Duration(0.15);
   pub.publish(m);
 }
-
 }

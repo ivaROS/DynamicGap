@@ -69,6 +69,7 @@ namespace dynamic_gap
                 bool future_scan_propagation = true; /**< Flag for enacting future scan propagation */
                 bool egocircle_prop_cheat = false; /**< Flag for enacting future scan propagation through cheating */
                 bool projection_operator = true; /**< Boolean for if planner should apply projection operator */
+                bool cbf_enabled = false; /**< Flag for applying CBF constraints in DWA feedback control */
                 bool gap_feasibility_check = true; /**< Flag for enacting gap feasibility checking */
                 bool perfect_gap_models = false; /**< Flag for using perfect gap models */
                 bool dwa_method = true; /**< Flag for using dwa to generate trajectories instead of pursuit guidance */
