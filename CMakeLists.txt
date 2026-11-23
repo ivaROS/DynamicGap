@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(dynamic_gap)
 
+# Default to Release unless a build type was explicitly selected.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 add_compile_options(-std=c++17)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
