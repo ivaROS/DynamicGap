@@ -239,6 +239,66 @@ TEST(MppiNativeCost, RejectsBetweenStepCollisionAndMisalignedTiming)
     EXPECT_TRUE(std::isinf(evaluateMppiTrajectory(misaligned, evaluator, cfg, scans, {}, nullptr)));
 }
 
+TEST(MppiNativeCost, PredictsMotionWithEitherEndpointAlone)
+{
+    ros::Time::init();
+    DynamicGapConfig cfg;
+    cfg.traj.integrate_stept = 0.2f;
+    cfg.rbt.r_inscr = 0.2f;
+    cfg.traj.w_h = 1.0f;
+    TrajectoryEvaluator evaluator(cfg);
+    geometry_msgs::TransformStamped identity;
+    identity.transform.rotation.w = 1;
+    geometry_msgs::PoseStamped goal;
+    goal.pose = initialPose();
+    evaluator.transformGlobalPathLocalWaypointToRbtFrame(goal, identity);
+    Gap gap("laser", 270, 1.0f, 240, 1.0f, false);
+    geometry_msgs::TwistStamped zero;
+    EstimationParameters parameters;
+    gap.getLeftGapPt()->getModel()->initialize("left", 1, 1, 0, ros::Time::now(), zero, zero, parameters);
+    gap.getRightGapPt()->getModel()->initialize("right", 2, 1, 0, ros::Time::now(), zero, zero, parameters);
+    std::unordered_map<int, Eigen::Vector2f> left, right;
+    evaluator.leftVelDictPtr_ = &left;
+    evaluator.rightVelDictPtr_ = &right;
+    sensor_msgs::LaserScan scan;
+    scan.ranges.assign(512, 10.0f);
+    std::vector<sensor_msgs::LaserScan> scans(4, scan);
+    for (bool leftActive : {false, true})
+    {
+        left[1] = Eigen::Vector2f(leftActive ? 0.2f : 0.0f, 0);
+        right[2] = Eigen::Vector2f(leftActive ? 0.0f : 0.2f, 0);
+        for (double speed : {0.0, 1.0})
+        {
+            MppiControls controls(3);
+            controls[0].linear.x = speed;
+            controls[2].linear.x = speed;
+            auto rollout = rolloutMppiControls(initialPose(), controls, cfg.traj.integrate_stept, "laser");
+            cfg.traj.use_h_cost = false;
+            const float baseline = evaluateMppiTrajectory(rollout, evaluator, cfg, scans, {}, &gap);
+            const auto basePoseCosts = rollout.PoseCosts;
+            const float baseTerminal = rollout.TerminalPoseCost;
+            cfg.traj.use_h_cost = true;
+            const float scored = evaluateMppiTrajectory(rollout, evaluator, cfg, scans, {}, &gap);
+            ASSERT_TRUE(std::isfinite(scored));
+            EXPECT_FLOAT_EQ(rollout.TerminalPoseCost, baseTerminal);
+            EXPECT_FLOAT_EQ(rollout.PoseCosts.front(), basePoseCosts.front());
+            EXPECT_FLOAT_EQ(rollout.PoseCosts[2], basePoseCosts[2]);
+            const float firstPenalty = rollout.PoseCosts[1] - basePoseCosts[1];
+            const float lastPenalty = rollout.PoseCosts[3] - basePoseCosts[3];
+            if (speed > 0.0)
+            {
+                EXPECT_GT(firstPenalty, 0.0f);
+                EXPECT_GT(lastPenalty, 0.0f);
+            }
+            EXPECT_NEAR(scored - baseline, (firstPenalty + lastPenalty) / 4, 1e-6);
+            if (speed == 0.0)
+                EXPECT_FLOAT_EQ(scored, baseline);
+            else
+                EXPECT_GT(scored, baseline);
+        }
+    }
+}
+
 TEST(MppiNativeOutput, KeepsOriginalLayoutAndRecomputesOriginalCostComponents)
 {
     ros::Time::init();

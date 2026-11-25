@@ -20,6 +20,8 @@ struct dwa_Trajectory
     // float H_left = 0.0f;  // h for the CBF
 
     // --- Cost terms (for later DWA scoring) ---
+    float mean_h_cost = 0.0f;
+    float weighted_speed_cost = 0.0f;
     float obs_cost = 0.0f;
     float goal_cost = 0.0f;
     float speed_cost = 0.0f;

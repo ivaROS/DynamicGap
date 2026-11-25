@@ -253,6 +253,7 @@ float evaluateMppiTrajectory(dwa_Trajectory& trajectory,
         speed_cost += evaluator.calcSpeedCost(speed, cfg.rbt.vx_absmax);
     }
     const float extra = cfg.traj.w_speed * speed_cost / (poses.size() - 1);
+    trajectory.weighted_speed_cost = extra;
     trajectory.TerminalPoseCost += extra;
     trajectory.totalTrajCost += extra;
     return trajectory.totalTrajCost;

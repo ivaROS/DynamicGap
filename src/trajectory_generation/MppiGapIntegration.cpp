@@ -2,6 +2,10 @@
 #include <dynamic_gap/trajectory_generation/MppiOptimizer.h>
 #include <dynamic_gap/utils/bezier_utils.h>
 #include <algorithm>
+#include <filesystem>
+#include <iomanip>
+#include <numeric>
+#include <ros/file_log.h>
 
 namespace dynamic_gap
 {
@@ -77,10 +81,9 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     const geometry_msgs::Pose initial = rbtPoseInRbtFrame_.pose;
     const auto visiblePlan = globalPlanManager_->getVisibleGlobalPlanSnippetRobotFrame(map2rbt_);
 
-    // Same objective for every optimizer, including the single-nominal baseline.
-    // Optional endpoint costs are otherwise gap-dependent. Their maximum across
-    // current gap contexts keeps native costs without adding a synthetic gate cost.
-    const auto score = [&](dwa_Trajectory& trajectory) {
+    // Standard MPPI has no originating gap. Use the worst endpoint context
+    // there, and preserve the existing social-only objective when h is off.
+    const auto sharedScore = [&](dwa_Trajectory& trajectory) {
         if (!cfg_.planning.social_cost_function && !cfg_.traj.use_h_cost)
             return evaluateMppiTrajectory(trajectory, *trajEvaluator_, cfg_, futureScans, visiblePlan, nullptr);
         dwa_Trajectory worst;
@@ -120,6 +123,29 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
     const unsigned int cycle = mppiCycle_++;
     mppiRanLastCycle_ = true;
     const double now = ros::Time::now().toSec();
+    if (cfg_.mppi.log_scores && !mppiScoreLog_.is_open())
+    {
+        const std::filesystem::path directory = cfg_.mppi.score_log_dir.empty()
+            ? std::filesystem::path(ros::file_log::getLogDirectory()) / "mppi_scores"
+            : std::filesystem::path(cfg_.mppi.score_log_dir);
+        std::error_code error;
+        std::filesystem::create_directories(directory, error);
+        const auto file = directory / ("samples_" + std::to_string(ros::WallTime::now().toNSec()) + ".csv");
+        if (!error)
+            mppiScoreLog_.open(file);
+        if (mppiScoreLog_.is_open())
+        {
+            mppiScoreLog_ << "sim_time,cycle,gap,left_id,right_id,iteration,sample,mode,h_enabled,w_h,temperature,"
+                             "feasible,h,obstacle,goal,path,relative_velocity,speed,total,first_yaw_rate\n"
+                          << std::setprecision(12);
+            ROS_INFO_STREAM("Writing MPPI sample scores to " << file);
+        }
+        else
+        {
+            ROS_ERROR_STREAM("Cannot open MPPI score log " << file);
+            cfg_.mppi.log_scores = false;
+        }
+    }
     const auto pose = rbtPoseInOdomFrame_.pose;
     const auto goalPose = globalGoalOdomFrame_.pose;
     if (now <= mppiPreviousStamp_ || now - mppiPreviousStamp_ > cfg_.mppi.warm_start_max_age ||
@@ -176,6 +202,13 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
         }
 
         Gap* gap = gapTubes[i]->at(0);
+        MppiOptimizer::Score score = sharedScore;
+        if (cfg_.mppi.mode == "gap_guided" && cfg_.traj.use_h_cost)
+        {
+            score = [&, gap](dwa_Trajectory& path) {
+                return evaluateMppiTrajectory(path, *trajEvaluator_, cfg_, futureScans, visiblePlan, gap);
+            };
+        }
         const MppiWarmStartCache::Key key{gap->getLeftGapPt()->getModel()->getID(), gap->getRightGapPt()->getModel()->getID()};
         const bool identified = key.first >= 0 && key.second >= 0 && !ambiguous.count(key);
         const auto previous = previousStreaks.find(key);
@@ -200,6 +233,30 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             (optimizerIndex < cfg_.mppi.total_samples % optimizerIndices.size() ? 1 : 0);
         MppiOptimizer optimizer(optimizerConfig, unsigned(cfg_.mppi.seed) + 1664525u * cycle + 1013904223u * unsigned(i));
         auto result = optimizer.optimize(initial, nominal, count, cfg_.sensor_frame_id, score, forwardSpeed);
+        if (mppiScoreLog_.is_open())
+        {
+            auto mean = [](const std::vector<float>& values) {
+                return std::accumulate(values.begin(), values.end(), 0.0) / values.size();
+            };
+            for (std::size_t k = 0; k < result.samples.size(); ++k)
+            {
+                const auto& sample = result.samples[k];
+                mppiScoreLog_ << now << ',' << cycle << ',' << i << ',' << key.first << ',' << key.second
+                    << ',' << k / count << ',' << k % count << ',' << cfg_.mppi.mode << ',' << cfg_.traj.use_h_cost
+                    << ',' << cfg_.traj.w_h << ',' << cfg_.mppi.temperature << ',';
+                if (std::isfinite(sample.totalTrajCost))
+                {
+                    mppiScoreLog_ << "1," << sample.mean_h_cost << ',' << mean(sample.PoseCosts) - sample.mean_h_cost
+                        << ',' << sample.TerminalPoseCost - sample.weighted_speed_cost
+                        << ',' << cfg_.traj.w_path * mean(sample.PathCosts)
+                        << ',' << cfg_.traj.w_relvel * mean(sample.RelVelPoseCosts)
+                        << ',' << sample.weighted_speed_cost << ',' << sample.totalTrajCost;
+                }
+                else
+                    mppiScoreLog_ << "0,,,,,,,inf";
+                mppiScoreLog_ << ',' << sample.w_cmd << '\n';
+            }
+        }
         // Re-evaluate exactly the candidate exported to the existing pipeline.
         // Never export internal common costs computed against other gaps.
         if (result.valid)
@@ -255,6 +312,8 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             trajectory.gapPosRight = optimized.gapPosRight;
             trajectory.trajPosLeft = optimized.trajPosLeft;
             trajectory.robotVel = optimized.robotVel;
+            trajectory.robotVelRight = optimized.robotVelRight;
+            trajectory.trajPosRight = optimized.trajPosRight;
             trajectories[i] = std::move(trajectory);
             poseCosts[i].clear();
             for (std::size_t t = 0; t < optimized.PoseCosts.size(); ++t)
@@ -267,6 +326,12 @@ bool Planner::generateMppiGapTrajs(const std::vector<GapTube*>& gapTubes,
             << " samples=" << view.total_samples << " feasible=" << view.feasible_samples
             << " progress=" << view.progress_samples << " cost=" << view.cost);
         visualization.push_back(std::move(view));
+    }
+    if (mppiScoreLog_.is_open() && !mppiScoreLog_.flush())
+    {
+        ROS_ERROR("MPPI score log write failed; disabling logging");
+        mppiScoreLog_.close();
+        cfg_.mppi.log_scores = false;
     }
     publish(); // exactly one complete sample/nominal frame, after all optimizers
     ROS_INFO_STREAM_THROTTLE_NAMED(1.0, "MPPI", "mode=" << cfg_.mppi.mode << " gaps=" << valid.size()

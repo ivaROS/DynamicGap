@@ -85,6 +85,7 @@ namespace dynamic_gap
                                  std::vector<std::vector<float>>& poseCosts,
                                  std::vector<float>& terminalCosts,
                                  const std::vector<sensor_msgs::LaserScan>& futureScans);
+        std::ofstream mppiScoreLog_;
         unsigned int mppiCycle_ = 0;
         MppiWarmStartCache mppiWarmStart_;
         std::map<MppiWarmStartCache::Key, unsigned int> mppiPairStreaks_;

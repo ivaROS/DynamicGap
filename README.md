@@ -102,3 +102,35 @@ If would like to cite this work, please use the following format:
   month     = {September},
 }
 ```
+
+### Collecting MPPI score data
+
+Set `mppi/log_scores: true` in the planner's ROS parameters before launch.
+Each planner instance writes a timestamped sample CSV under
+`mppi_scores/` in its ROS run log directory. Set `mppi/score_log_dir` to
+a persistent directory to retain collections independently of ROS log cleanup.
+The logger flushes after every gap-planning cycle. A 30-minute run at 10 Hz
+and 96 proposals per cycle can produce about 1.7 million rows per iteration.
+
+Each row represents one sampled control sequence. Group by cycle, gap and
+iteration within one file. Simulation time and endpoint IDs support joins
+with episode and tracking data. Cost columns are weighted contributions to
+the optimizer's total. Obstacle and h are averages over the prediction
+horizon. Infeasible proposals have infinite total cost and empty component
+columns. Cycles without MPPI sampling produce no rows.
+
+Generate a compact time series with:
+
+```sh
+python3 scripts/summarize_mppi_scores.py samples_RUN.csv > gap_iterations.csv
+```
+
+Plot the mean component columns against simulation time, or plot
+`h_share` (sum of h divided by sum of total cost over feasible samples)
+alongside `weight_shift` (fraction of normalized sampling weight redistributed
+by h). A large common penalty can raise the share without changing steering.
+`winner_changed` compares the cheapest proposal with and without h.
+`first_yaw_rate_delta` estimates the change in the weighted first yaw rate
+in rad/s before update-fraction scaling, bounds and fallback checks. These
+comparisons hold proposals, feasibility and scoring context fixed. They do
+not simulate subsequent iterations, gap selection or the executed command.

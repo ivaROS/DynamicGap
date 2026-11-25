@@ -104,6 +104,51 @@ namespace dynamic_gap
 }
 
 
+    // The evaluator samples obstacle and endpoint costs on the same prediction grid.
+    template<class TrajectoryType>
+    static float addEndpointPoseCosts(TrajectoryEvaluator& evaluator, const DynamicGapConfig& cfg,
+                                     const TrajectoryType& trajectory, const geometry_msgs::PoseArray& path,
+                                     bool leftDynamic, bool rightDynamic, std::vector<float>& costs)
+    {
+        const bool left = leftDynamic && trajectory.humanVelLeft.allFinite() &&
+            trajectory.gapPosLeft.allFinite() && trajectory.robotVel.allFinite();
+        const bool right = rightDynamic && trajectory.humanVelRight.allFinite() &&
+            trajectory.gapPosRight.allFinite() && trajectory.robotVelRight.allFinite();
+        if ((!left && !right) || costs.empty())
+            return 0.0f;
+        float sum = 0.0f;
+
+        const float dt = cfg.traj.integrate_stept;
+        Eigen::Vector2f previous;
+        for (std::size_t i = 0; i < path.poses.size(); ++i)
+        {
+            const auto& p = path.poses[i].position;
+            const Eigen::Vector2f position(p.x, p.y);
+            const float time = i * dt;
+            Eigen::Vector2f velocity = Eigen::Vector2f::Zero();
+            if (i > 0)
+                velocity = (position - previous) / dt;
+            float violation = 0.0f;
+            if (left)
+            {
+                const Eigen::Vector2f relative = trajectory.gapPosLeft + time * trajectory.humanVelLeft - position;
+                violation += std::max(0.0f, -evaluator.compute_h(trajectory.humanVelLeft, relative,
+                    i == 0 ? trajectory.robotVel : velocity));
+            }
+            if (right)
+            {
+                const Eigen::Vector2f relative = trajectory.gapPosRight + time * trajectory.humanVelRight - position;
+                violation += std::max(0.0f, -evaluator.compute_h(trajectory.humanVelRight, relative,
+                    i == 0 ? trajectory.robotVelRight : velocity));
+            }
+            const float penalty = cfg.traj.w_h * std::max(0.0f, violation - 0.05f);
+            costs[i] += penalty;
+            sum += penalty;
+            previous = position;
+        }
+        return sum / costs.size();
+    }
+
     void TrajectoryEvaluator::evaluateTrajectory(const Trajectory & traj,
                                                 std::vector<float> & posewiseCosts,
                                                 float & terminalPoseCost,
@@ -506,30 +551,9 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
+        dwa_traj.mean_h_cost = 0.0f;
         if (cfg_->traj.use_h_cost)
-        {
-            float left_h = compute_h(dwa_traj.humanVelLeft, dwa_traj.gapPosLeft, dwa_traj.robotVel);
-            float right_h = compute_h(dwa_traj.humanVelRight, dwa_traj.gapPosRight, dwa_traj.robotVel);
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
-
-            // Violation magnitudes (only when H < 0)
-            float vL = std::max(0.0f, -left_h);
-            float vR = std::max(0.0f, -right_h);
-
-            // Combine endpoints (two bad sides worse than one)
-            float V = vL + vR;
-
-            // Deadband to ignore tiny negatives (tune this)
-            const float epsilon = 0.05f;
-            float V_eff = std::max(0.0f, V - epsilon);
-
-            // Amplify (helps because H kinda saturates around 0.4–0.5)
-            // float h_cost = V_eff * V_eff;
-            float h_cost = V_eff;
-
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
-        }
+            dwa_traj.mean_h_cost = addEndpointPoseCosts(*this, *cfg_, dwa_traj, pose_array, leftGapPtIsDynamic, rightGapPtIsDynamic, posewiseCosts);
 
             // Combine into a final cost
             totalTrajCost =
@@ -906,30 +930,7 @@ namespace dynamic_gap
         ///////////////////// h related cost 
 
         if (cfg_->traj.use_h_cost)
-        {
-            float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel);
-            float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel);
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
-
-            // Violation magnitudes (only when H < 0)
-            float vL = std::max(0.0f, -left_h);
-            float vR = std::max(0.0f, -right_h);
-
-            // Combine endpoints (two bad sides worse than one)
-            float V = vL + vR;
-
-            // Deadband to ignore tiny negatives (tune this)
-            const float epsilon = 0.05f;
-            float V_eff = std::max(0.0f, V - epsilon);
-
-            // Amplify (helps because H kinda saturates around 0.4–0.5)
-            // float h_cost = V_eff * V_eff;
-            float h_cost = V_eff;
-
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
-        }
-        // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
+            addEndpointPoseCosts(*this, *cfg_, traj, path, leftGapPtIsDynamic, rightGapPtIsDynamic, posewiseCosts);
 
 
             // Combine into a final cost
@@ -953,7 +954,6 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_outside cost: " << posewiseCosts.at(i) << "): ");
             }
             }
-            // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         } catch (const std::out_of_range& e) 
@@ -1312,30 +1312,7 @@ namespace dynamic_gap
         ///////////////////// h related cost 
 
         if (cfg_->traj.use_h_cost)
-        {
-            float left_h = compute_h(traj.humanVelLeft, traj.gapPosLeft, traj.robotVel);
-            float right_h = compute_h(traj.humanVelRight, traj.gapPosRight, traj.robotVel);
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            in traj eval left_h: " << left_h << " right_h: " << right_h);
-
-            // Violation magnitudes (only when H < 0)
-            float vL = std::max(0.0f, -left_h);
-            float vR = std::max(0.0f, -right_h);
-
-            // Combine endpoints (two bad sides worse than one)
-            float V = vL + vR;
-
-            // Deadband to ignore tiny negatives (tune this)
-            const float epsilon = 0.05f;
-            float V_eff = std::max(0.0f, V - epsilon);
-
-            // Amplify (helps because H kinda saturates around 0.4–0.5)
-            // float h_cost = V_eff * V_eff;
-            float h_cost = V_eff;
-
-            // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "            h_cost: " <<  h_cost);
-            terminalPoseCost += cfg_->traj.w_h * h_cost; // just taching h_cost onto this
-        }
-        // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that (i'm talking about this function btw dwa_evaluateTrajectory_outside)
+            addEndpointPoseCosts(*this, *cfg_, traj, path, leftGapPtIsDynamic, rightGapPtIsDynamic, posewiseCosts);
 
 
             // Combine into a final cost
@@ -1361,7 +1338,6 @@ namespace dynamic_gap
                 // ROS_ERROR_STREAM_NAMED("TrajectoryEvaluator", "           pose " << i << " (dwa_evaluateTrajectory_reducedCurrentTraj cost: " << posewiseCosts.at(i) << "): ");
             }
             }
-            // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         } catch (const std::out_of_range& e) 
@@ -1614,7 +1590,6 @@ namespace dynamic_gap
 
         ///////////////////// h related cost 
 
-        // because the h_cost is already added to terminalPoseCost, I don't need to do anyrepackaging related to that 
 
             // ROS_INFO_STREAM_NAMED("TrajectoryEvaluator", "evaluateTrajectory time taken:" << ros::WallTime::now().toSec() - start_time);
         } catch (const std::out_of_range& e) 

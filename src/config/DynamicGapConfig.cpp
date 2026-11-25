@@ -6,6 +6,8 @@ namespace dynamic_gap
     {
         ros::NodeHandle nh("~/" + name);
 
+        nh.param("mppi/log_scores", mppi.log_scores, mppi.log_scores);
+        nh.param("mppi/score_log_dir", mppi.score_log_dir, mppi.score_log_dir);
         nh.param("mppi/enabled", mppi.enabled, mppi.enabled);
         nh.param("goal_approach/enabled", goal_approach.enabled, goal_approach.enabled);
         nh.param("goal_approach/activation_distance", goal_approach.activation_distance, goal_approach.activation_distance);

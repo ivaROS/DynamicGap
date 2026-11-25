@@ -82,6 +82,8 @@ namespace dynamic_gap
             // dt is deliberately shared with the existing future-scan predictions.
             struct Mppi
             {
+                bool log_scores = true;
+                std::string score_log_dir; // Empty uses the ROS run log directory.
                 bool enabled = true;
                 bool warm_start = true;
                 double warm_start_max_age = 1.0; // simulation seconds
